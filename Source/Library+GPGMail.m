@@ -79,6 +79,8 @@ NSString * const kLibraryMimeBodyReturnCompleteBodyDataForMessageKey = @"Library
 extern NSString * const kLibraryMimeBodyReturnCompleteBodyDataForComposeBackendKey;
 
 NSString * const kLibraryMessagePreventSnippingAttachmentDataKey = @"LibraryMessagePreventSnippingAttachmentDataKey";
+NSString * const kLibraryMessageDataIsBeingForceFetched = @"LibraryMessageDataIsBeingForceFetched";
+
 
 extern NSString * const kMessageSecurityFeaturesKey;
 extern NSString * const kMFLibraryStoreMessageWaitForData;
@@ -176,7 +178,15 @@ static NSMutableDictionary *messageDataAccessMap;
 }
 
 + (NSData *)GMForceFetchMessageDataForMessage:(MCMessage *)message {
-    return [message messageDataFetchIfNotAvailable:YES newDocumentID:nil];
+    [message setIvar:kLibraryMessageDataIsBeingForceFetched value:@(YES)];
+    [[[NSThread currentThread] threadDictionary] setValue:@(YES) forKey:kLibraryMessageDataIsBeingForceFetched];
+
+    NSData *messageData = [message messageDataFetchIfNotAvailable:YES newDocumentID:nil];
+
+    [messageData removeIvar:kLibraryMessageDataIsBeingForceFetched];
+    [[[NSThread currentThread] threadDictionary] removeObjectForKey:kLibraryMessageDataIsBeingForceFetched];
+
+    return messageData;
 }
 
 + (NSData *)GMRawDataForMessage:(MCMessage *)currentMessage topLevelPart:(MCMimePart *)topLevelPart fetchIfNotAvailable:(BOOL)fetchIfNotAvailable {
@@ -258,7 +268,7 @@ static NSMutableDictionary *messageDataAccessMap;
         }
         return NO;
     }
-    
+
     // Create the mime part, headers and message body.
     NSRange headerDataRange = [messageData rangeOfRFC822HeaderData];
     NSData *headerData = [messageData subdataWithRange:headerDataRange];
