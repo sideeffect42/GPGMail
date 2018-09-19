@@ -510,7 +510,8 @@
                                      @"_decode",
                                      @"messageBody",
                                      @"htmlStringForMimePart:attachment:",
-                                     @"decodeApplicationPkcs7"]
+                                     @"decodeApplicationPkcs7",
+                                     @"_decodeTextHtml"]
                              }
                      },
 //             @"MailApp": @{
