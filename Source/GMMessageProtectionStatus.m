@@ -139,7 +139,17 @@
     if([encryptedPart parentPart] == nil && [encryptedPart isType:@"text" subtype:@"plain"]) {
         return YES;
     }
-
+    
+    // Bug #989: Inline messages from Mailvelope display as partly encrypted
+    //
+    // In the case of only one part being displayed and the part being text/plain
+    // it's ok to say the entire message is encrypted, if this is a multipart/alternative
+    // message.
+    MCMimePart *parentPart = [encryptedPart parentPart];
+    if([encryptedPart isType:@"text" subtype:@"plain"] && [parentPart isType:@"multipart" subtype:@"alternative"] && ![parentPart parentPart]) {
+        return YES;
+    }
+    
     return NO;
 }
 
