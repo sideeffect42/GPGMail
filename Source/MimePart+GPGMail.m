@@ -507,8 +507,22 @@ NSString * const kMimePartAllowPGPProcessingKey = @"MimePartAllowPGPProcessingKe
     MCMimePart *currentPart = (MCMimePart *)self;
     while(currentPart) {
         if([currentPart isType:@"message" subtype:nil]) {
-            [[(MimePart_GPGMail *)currentPart topPart] setIvar:kMimePartAllowPGPProcessingKey value:@(NO)];
-            return NO;
+            // Bug #992: Add support for inline message/rfc822 if it contains a PGP/MIME encrypted message.
+            //
+            // Some companies apparently think it's necessary to add their legal disclaimer on top of the
+            // encrypted message and wrap the encrypted message in a message/rfc822 part.
+            if([self GMShowMessageSubMimePartsAsAttachment]) {
+                [currentPart setDisposition:@"attachment"];
+                [currentPart setDispositionParameter:@"Original message.eml" forKey:@"filename"];
+                return NO;
+            }
+            else {
+                BOOL containsPGPMIMEPart = [currentPart isType:@"message" subtype:@"rfc822"] && [[currentPart firstChildPart] isType:@"multipart" subtype:@"encrypted"];
+                if(!containsPGPMIMEPart) {
+                    [[(MimePart_GPGMail *)currentPart topPart] setIvar:kMimePartAllowPGPProcessingKey value:@(NO)];
+                    return NO;
+                }
+            }
         }
         currentPart = [currentPart parentPart];
     }
@@ -545,6 +559,17 @@ NSString * const kMimePartAllowPGPProcessingKey = @"MimePartAllowPGPProcessingKe
 	}];
 	
 	return tnefPart;
+}
+
+- (BOOL)GMShowMessageSubMimePartsAsAttachment {
+    // By default message/rfc822 is presented inline, but that's not what
+    // we want in case of PGP/MIME encrypted messages. So based on the default,
+    // the message will either be displayed inline or as attachment.
+    //
+    // This feature can be enabled using:
+    //
+    // `defaults write org.gpgtools.gpgmail ShowMessageSubMimePartsAsAttachment -bool YES`
+    return [[[GPGOptions sharedOptions] valueForKey:@"ShowMessageSubMimePartsAsAttachment"] boolValue];
 }
 
 - (id)decodeApplicationMS_tnefWithContext:(id)ctx {
