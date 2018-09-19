@@ -1,4 +1,3 @@
-/* GPGMailBundle.m created by dave on Thu 29-Jun-2000 */
 /* GPGMailBundle.m completely re-created by Lukas Pitschl (@lukele) on Thu 13-Jun-2013 */
 /*
  * Copyright (c) 2000-2016, GPGTools Project Team <gpgtools-devel@lists.gpgtools.org>
@@ -109,6 +108,19 @@
         return NO;
     }
     return wantsDisplay;
+}
+
+- (void)MA_hasBlockedRemoteContentDidChange:(BOOL)arg1 {
+    if([(MUIWebDocument *)[(LoadRemoteContentBannerViewController *)self webDocument] isEncrypted]) {
+        if([self respondsToSelector:@selector(loadRemoteContentButton)]) {
+            NSButton *loadRemoteContentButton = [(LoadRemoteContentBannerViewController *)self loadRemoteContentButton];
+            [loadRemoteContentButton setHidden:YES];
+            [loadRemoteContentButton setEnabled:NO];
+        }
+    }
+    else {
+        [self MA_hasBlockedRemoteContentDidChange:arg1];
+    }
 }
 
 @end

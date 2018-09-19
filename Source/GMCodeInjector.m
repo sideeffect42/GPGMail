@@ -583,7 +583,8 @@
                      @"selectors": @[
                              @"wantsDisplay",
                              @"setWantsDisplay:",
-                             @"updateBannerContents"]
+                             @"updateBannerContents",
+                             @"_hasBlockedRemoteContentDidChange:"]
                      },
              @"JunkMailBannerViewController": @{
                      @"selectors": @[
