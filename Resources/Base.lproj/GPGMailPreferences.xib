@@ -228,7 +228,7 @@
                     <constraint firstAttribute="bottom" relation="greaterThanOrEqual" secondItem="1051" secondAttribute="bottom" constant="16" id="Nth-z1-IpU"/>
                     <constraint firstItem="aZa-FD-lCE" firstAttribute="top" secondItem="as5-13-kZu" secondAttribute="bottom" constant="2" id="cMt-6Y-Zki"/>
                     <constraint firstItem="733" firstAttribute="top" secondItem="aZa-FD-lCE" secondAttribute="bottom" constant="10" id="g6f-s4-O4G"/>
-                    <constraint firstAttribute="bottom" secondItem="zn9-zw-3Nf" secondAttribute="bottom" priority="500" constant="16" id="u6m-Oq-nEM"/>
+                    <constraint firstAttribute="bottom" secondItem="zn9-zw-3Nf" secondAttribute="bottom" priority="749" constant="16" id="u6m-Oq-nEM"/>
                 </constraints>
             </view>
             <constraints>
