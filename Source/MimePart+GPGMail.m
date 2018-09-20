@@ -533,6 +533,15 @@ NSString * const kMimePartAllowPGPProcessingKey = @"MimePartAllowPGPProcessingKe
             [(MimePart_GPGMail *)[self topPart] setDecryptedTopLevelMimePart:decryptedTopLevelPart];
             content = body;
             
+            // Bug #987: PGP/MIME encrypted and signed message are recognized as partially encrypted
+            //           - signature not shown
+            //
+            // To handle this case, the PGP/MIME tree part is added to the signed parts
+            // as well if its signed status is set to YES and signatures are available.
+            if([self PGPSigned] && [[self PGPSignatures] count]) {
+                [messageProtectionStatus.signedParts addObject:mailself];
+            }
+            
             // If content is no attachment, flag the content and part as isolated.
             NSString *isolatedContent = [contentIsolator isolationMarkupForContent:[body html] mimePart:MAIL_SELF(self)];
             [content setHtml:isolatedContent];

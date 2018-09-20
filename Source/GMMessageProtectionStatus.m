@@ -117,6 +117,16 @@
     if(self.containsPlainParts) {
         return NO;
     }
+    
+    // Bug #987: PGP/MIME encrypted and signed message are recognized as partially encrypted
+    //           - signature not shown
+    //
+    // A PGP/MIME messages which is encrypted and signed is considered
+    // completely signed, if the encrypted part itself is also signed.
+    if(self.containsEncryptedParts && [self.encryptedParts count] == 1 && self.encryptedParts[0] == self.signedParts[0]) {
+        return YES;
+    }
+    
     // TODO: ponder about other cases.
     return parentPart == nil;
 }
