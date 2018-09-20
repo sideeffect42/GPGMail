@@ -258,6 +258,7 @@ decisionHandler:(void (^)(WKNavigationActionPolicy))decisionHandler {
 
 @end
 
+<<<<<<< 724e69978d275e299a3a04abeea436fecff871cf
 
 @interface MessageViewer_GPGMail : NSObject
 
