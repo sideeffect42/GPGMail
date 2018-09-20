@@ -599,6 +599,11 @@
                                      ]
                              }
                      },
+             @"MessageViewer": @{
+                     @"selectors": @[
+                         @"_mailApplicationDidFinishLaunching:"
+                             ]
+                     },
              @"MCMessageHeaders": @{
                      @"selectors": @[
                              @"headersForKey:"]

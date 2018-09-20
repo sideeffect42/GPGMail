@@ -295,7 +295,9 @@ static NSMutableDictionary *messageDataAccessMap;
     }
     if(body != NULL && mimePart != NULL) {
         if(shouldProcessPGPData) {
-            [mimePart setIvar:kMimePartAllowPGPProcessingKey value:@(YES)];
+            if([[GPGMailBundle sharedInstance] hasActiveContract] || [[[GPGMailBundle sharedInstance] remainingTrialDays] integerValue] > 0) {
+                [mimePart setIvar:kMimePartAllowPGPProcessingKey value:@(YES)];
+            }            
         }
         MCMessageBody *messageBody = [mimePart messageBody];
         // Set the security features collected on topLevelMimePart on the message.
@@ -516,9 +518,9 @@ static NSMutableDictionary *messageDataAccessMap;
             dispatch_semaphore_wait(sem, DISPATCH_TIME_FOREVER);
             dispatch_cancel(timer);
 
-            dispatch_release(timer);
-            dispatch_release(fileSizeCheckQueue);
-            dispatch_release(sem);
+//            dispatch_release(timer);
+//            dispatch_release(fileSizeCheckQueue);
+//            dispatch_release(sem);
         }
     }
     return messageData;
