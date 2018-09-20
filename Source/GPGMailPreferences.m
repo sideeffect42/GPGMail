@@ -86,6 +86,9 @@ NSString *SUScheduledCheckIntervalKey = @"SUScheduledCheckInterval";
 	return [[NSAttributedString alloc] initWithString:string attributes:attributes];
 }
 
+- (NSString *)registrationDescription {
+	return @"Trial";
+}
 
 - (NSImage *)imageForPreferenceNamed:(NSString *)aName {
 	return [NSImage imageNamed:@"GPGMail"];
