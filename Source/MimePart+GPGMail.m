@@ -1266,7 +1266,7 @@ NSString * const kMimePartAllowPGPProcessingKey = @"MimePartAllowPGPProcessingKe
     // that might actually have been encrypted.
     // For more see: https://neopg.io/blog/encryption-spoof/
     // TODO: This has to be a special error code in Libmacgpg!
-    BOOL unencryptedPlaintextError = gpgc.error && [gpgc.error.reason length] && [gpgc.error.reason rangeOfString:@"Unencrypted Plaintext"].location != NSNotFound;
+    BOOL unencryptedPlaintextError = gpgc.error && [gpgc.error.reason length] && ([gpgc.error.reason rangeOfString:@"Unencrypted Plaintext"].location != NSNotFound || (((GPGException *)gpgc.error).errorCode == GPGErrorBadData && [gpgc.gpgTask.errText rangeOfString:@"handle plaintext failed"].location != NSNotFound));
     if(unencryptedPlaintextError) {
         // Remove from message protection status.
         GMMessageProtectionStatus *messageProtectionStatus = [self GMMessageProtectionStatus];
