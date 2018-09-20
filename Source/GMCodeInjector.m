@@ -598,6 +598,10 @@
                                      @"updateBannerContents"
                                      ]
                              }
+                     },
+             @"MCMessageHeaders": @{
+                     @"selectors": @[
+                             @"headersForKey:"]
                      }
      };
 }

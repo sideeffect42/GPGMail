@@ -253,6 +253,44 @@ decisionHandler:(void (^)(WKNavigationActionPolicy))decisionHandler {
 
 @end
 
+@interface MCMessageHeaders_GPGMail : NSObject
+
+@end
+
+@implementation MCMessageHeaders_GPGMail
+
+- (NSArray *)MAHeadersForKey:(NSString *)key {
+    NSArray *headers = [self MAHeadersForKey:key];
+    if([key isEqualToString:@"subject"]) {
+        // Bug #1001: Message might appear as signed even though it isn't by abusing the subject
+        //
+        // By using UTF-8 characters and new lines in a subject, it is possible for an attacker
+        // to trick an unsuspecting user into believing that a message is signed, even though
+        // it is not.
+        //
+        // Now macOS Mail is even particularly stupid and allows more than one Subject header
+        // and concatenates them splitted by new lines...
+        //
+        // To fix this, GPGMail only allows a single line subject.
+        NSString *subject = [headers count] ? headers[0] : nil;
+        if(!subject) {
+            return headers;
+        }
+        NSRange range = NSMakeRange(0, [subject length]);
+        __block NSString *firstSubjectLine = nil;
+        [subject enumerateSubstringsInRange:range
+                                   options:NSStringEnumerationByParagraphs
+                                usingBlock:^(NSString * _Nullable paragraph, NSRange paragraphRange, NSRange enclosingRange, BOOL * _Nonnull stop) {
+                                    firstSubjectLine = paragraph;
+                                    *stop = YES;
+                                }];
+        return @[firstSubjectLine];
+    }
+    return headers;
+}
+
+@end
+
 NSString * const kGMED = @"1$5$3$7:4:7-3-6§0§0";
 
 @interface GPGMailBundle ()
