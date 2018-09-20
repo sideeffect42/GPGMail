@@ -184,6 +184,7 @@ extern NSString *gpgErrorIdentifier; // This identifier is used to set and find 
 - (void)checkSupportContractAndStartWizardIfNecessary;
 - (BOOL)hasActiveContract;
 - (NSNumber *)remainingTrialDays;
+- (NSDictionary *)fetchContractInformation;
 
 @property (readonly) GPGErrorCode gpgStatus;
 @property (readonly, strong) NSSet *allGPGKeys;

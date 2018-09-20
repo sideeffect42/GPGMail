@@ -30,6 +30,7 @@
 #import <mach-o/dyld.h>
 #import <dlfcn.h>
 #import <Libmacgpg/Libmacgpg.h>
+#import <Libmacgpg/GPGTaskHelperXPC.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
 #import "CCLog.h"
@@ -832,16 +833,21 @@ static BOOL gpgMailWorks = NO;
 
 - (NSDictionary *)contractInformation {
     if(!_activationInfo) {
-        GPGTaskHelperXPC *xpc = [[GPGTaskHelperXPC alloc] init];
-        NSDictionary __autoreleasing *activationInfo = nil;
-        BOOL hasSupportContract = [xpc validSupportContractAvailableForProduct:@"GPGMail" activationInfo:&activationInfo];
-        NSLog(@"[GPGMail %@]: Support contract is valid? %@", [(GPGMailBundle *)[GPGMailBundle sharedInstance] version], hasSupportContract ? @"YES" : @"NO");
-        NSLog(@"[GPGMail %@]: Activation info: %@", [(GPGMailBundle *)[GPGMailBundle sharedInstance] version], activationInfo);
+        NSDictionary *activationInfo = [self fetchContractInformation];
         _activationInfo = activationInfo;
     }
     
     return _activationInfo;
- }
+}
+
+- (NSDictionary *)fetchContractInformation {
+    GPGTaskHelperXPC *xpc = [[GPGTaskHelperXPC alloc] init];
+    NSDictionary __autoreleasing *activationInfo = nil;
+    BOOL hasSupportContract = [xpc validSupportContractAvailableForProduct:@"GPGMail" activationInfo:&activationInfo];
+    NSLog(@"[GPGMail %@]: Support contract is valid? %@", [(GPGMailBundle *)[GPGMailBundle sharedInstance] version], hasSupportContract ? @"YES" : @"NO");
+    NSLog(@"[GPGMail %@]: Activation info: %@", [(GPGMailBundle *)[GPGMailBundle sharedInstance] version], activationInfo);
+    return activationInfo;
+}
 
 - (BOOL)hasActiveContract {
     NSDictionary *contractInformation = [self contractInformation];
