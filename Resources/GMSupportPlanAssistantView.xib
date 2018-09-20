@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="14113" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="13771" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES">
     <dependencies>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="14113"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="13771"/>
         <capability name="box content view" minToolsVersion="7.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
         <capability name="stacking Non-gravity area distributions on NSStackView" minToolsVersion="7.0" minSystemVersion="10.11"/>
@@ -51,13 +51,13 @@
                                             <imageCell key="cell" refusesFirstResponder="YES" alignment="left" imageScaling="proportionallyUpOrDown" image="GPGMail" id="YBH-J8-wmK"/>
                                         </imageView>
                                         <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" preferredMaxLayoutWidth="0.0" translatesAutoresizingMaskIntoConstraints="NO" id="hgx-cl-JE3">
-                                            <rect key="frame" x="131" y="67" width="225" height="40"/>
+                                            <rect key="frame" x="131" y="67" width="229" height="40"/>
                                             <constraints>
                                                 <constraint firstAttribute="height" constant="40" id="udE-JU-Zvh"/>
                                             </constraints>
                                             <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Welcome to GPG Mail" id="zBR-mH-ae2">
                                                 <font key="font" metaFont="systemBold" size="22"/>
-                                                <color key="textColor" white="0.14361049107142856" alpha="0.84999999999999998" colorSpace="calibratedWhite"/>
+                                                <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
                                                 <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                             </textFieldCell>
                                         </textField>
@@ -65,7 +65,7 @@
                                             <rect key="frame" x="131" y="50" width="273" height="19"/>
                                             <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="You can test GPG Mail free for 30 days." id="a3v-Kk-RRg">
                                                 <font key="font" metaFont="system" size="15"/>
-                                                <color key="textColor" white="0.16339285714285715" alpha="0.84999999999999998" colorSpace="calibratedWhite"/>
+                                                <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
                                                 <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                             </textFieldCell>
                                         </textField>
@@ -82,7 +82,7 @@
                                 <constraints>
                                     <constraint firstAttribute="height" constant="130" id="1SR-Jn-0nf"/>
                                 </constraints>
-                                <color key="fillColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                <color key="fillColor" name="controlLightHighlightColor" catalog="System" colorSpace="catalog"/>
                             </box>
                             <box verticalHuggingPriority="750" boxType="separator" translatesAutoresizingMaskIntoConstraints="NO" id="z8r-7m-wfl">
                                 <rect key="frame" x="0.0" y="243" width="500" height="5"/>
@@ -102,7 +102,7 @@
                                 <rect key="frame" x="18" y="208" width="464" height="17"/>
                                 <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="left" title="Support a small company." id="Onv-Fc-45S">
                                     <font key="font" metaFont="system"/>
-                                    <color key="textColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="calibratedWhite"/>
+                                    <color key="textColor" name="selectedTextColor" catalog="System" colorSpace="catalog"/>
                                     <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                 </textFieldCell>
                             </textField>
@@ -149,7 +149,7 @@
                                             <rect key="frame" x="18" y="23" width="100" height="17"/>
                                             <textFieldCell key="cell" lineBreakMode="clipping" alignment="right" title="Activation Code" id="PfF-Z3-Uke">
                                                 <font key="font" metaFont="system"/>
-                                                <color key="textColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="calibratedWhite"/>
+                                                <color key="textColor" name="selectedTextColor" catalog="System" colorSpace="catalog"/>
                                                 <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                             </textFieldCell>
                                         </textField>
@@ -157,7 +157,7 @@
                                             <rect key="frame" x="77" y="53" width="37" height="17"/>
                                             <textFieldCell key="cell" lineBreakMode="clipping" alignment="right" title="Email" id="8hp-3d-f6h">
                                                 <font key="font" metaFont="system"/>
-                                                <color key="textColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="calibratedWhite"/>
+                                                <color key="textColor" name="selectedTextColor" catalog="System" colorSpace="catalog"/>
                                                 <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                             </textFieldCell>
                                         </textField>
@@ -179,7 +179,7 @@
                                     <constraint firstAttribute="height" constant="92" id="PWw-xl-dC6"/>
                                 </constraints>
                                 <color key="borderColor" white="0.2963169642857143" alpha="0.41999999999999998" colorSpace="calibratedWhite"/>
-                                <color key="fillColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                <color key="fillColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                             </box>
                             <stackView distribution="fill" orientation="horizontal" alignment="top" horizontalStackHuggingPriority="249.99998474121094" verticalStackHuggingPriority="249.99998474121094" detachesHiddenViews="YES" translatesAutoresizingMaskIntoConstraints="NO" id="9pQ-py-7Bt">
                                 <rect key="frame" x="20" y="25" width="220" height="17"/>
@@ -239,7 +239,7 @@
                     <constraints>
                         <constraint firstItem="R3m-MH-Gch" firstAttribute="top" secondItem="o6d-cd-iZE" secondAttribute="top" id="o5x-gm-sK0"/>
                     </constraints>
-                    <color key="fillColor" white="0.8998325892857143" alpha="1" colorSpace="calibratedWhite"/>
+                    <color key="fillColor" name="windowBackgroundColor" catalog="System" colorSpace="catalog"/>
                 </box>
                 <box verticalHuggingPriority="750" boxType="separator" translatesAutoresizingMaskIntoConstraints="NO" id="6Ja-zY-y4E">
                     <rect key="frame" x="0.0" y="39" width="500" height="5"/>
