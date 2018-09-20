@@ -45,8 +45,6 @@
 #import "GMSecurityControl.h"
 #import "ComposeViewController.h"
 
-#import "GPGTaskHelperXPC.h"
-
 #import "NSObject+LPDynamicIvars.h"
 @interface CertificateBannerViewController_GPGMail : NSObject
 

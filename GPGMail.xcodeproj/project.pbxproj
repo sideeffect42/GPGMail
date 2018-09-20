@@ -4598,6 +4598,14 @@
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEPLOYMENT_POSTPROCESSING = NO;
+				FRAMEWORK_SEARCH_PATHS = (
+					/Library/Frameworks,
+					"\"$(SRCROOT)/Frameworks\"",
+					"$(SRCROOT)/Dependencies/Libmacgpg/build/$(CONFIGURATION)",
+					"$(HOME)/Library/Containers/com.apple.mail/Data/Library/Frameworks",
+					"$(HOME)/Library/Frameworks",
+					"\"$(SYSTEM_LIBRARY_DIR)/PrivateFrameworks\"",
+				);
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_ENABLE_OBJC_GC = unsupported;
 				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
