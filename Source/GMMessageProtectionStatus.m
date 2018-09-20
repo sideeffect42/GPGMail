@@ -83,11 +83,35 @@
 }
 
 - (BOOL)partsOfMessageAreSigned {
-    return self.containsSignedParts && ![self completeMessageIsSigned];
+    return [[self signedTextParts] count] && ![self completeMessageIsSigned];
 }
 
 - (BOOL)partsOfMessageAreEncrypted {
-    return self.containsEncryptedParts && ![self completeMessageIsEncrypted];
+    return [[self encryptedTextParts] count] && ![self completeMessageIsEncrypted];
+}
+
+- (NSArray *)encryptedTextParts {
+    return [self.encryptedParts filteredArrayUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(id  _Nullable evaluatedObject, NSDictionary<NSString *,id> * _Nullable bindings) {
+        return ![(MimePart_GPGMail *)evaluatedObject PGPAttachment];
+    }]];
+}
+
+- (NSArray *)signedTextParts {
+    return [self.signedParts filteredArrayUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(id  _Nullable evaluatedObject, NSDictionary<NSString *,id> * _Nullable bindings) {
+        return ![(MimePart_GPGMail *)evaluatedObject PGPAttachment];
+    }]];
+}
+
+- (NSArray *)encryptedAttachmentParts {
+    return [self.encryptedParts filteredArrayUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(id  _Nullable evaluatedObject, NSDictionary<NSString *,id> * _Nullable bindings) {
+        return [(MimePart_GPGMail *)evaluatedObject PGPAttachment];
+    }]];
+}
+
+- (NSArray *)signedAttachmentParts {
+    return [self.signedParts filteredArrayUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(id  _Nullable evaluatedObject, NSDictionary<NSString *,id> * _Nullable bindings) {
+        return [(MimePart_GPGMail *)evaluatedObject PGPAttachment];
+    }]];
 }
 
 - (BOOL)messageContainsOnlyProtectedAttachments {
@@ -104,9 +128,10 @@
 }
 
 - (BOOL)completeMessageIsSigned {
-    if(![self.signedParts count] || [self.signedParts count] > 1 || [self.encryptedParts count] > 0) {
+    if(![self.signedParts count] || [self.signedParts count] > 1) {
         return NO;
     }
+    
     MCMimePart *signedPart = [[self signedParts] objectAtIndex:0];
     MCMimePart *parentPart = signedPart.parentPart;
     if([signedPart isType:@"multipart" subtype:@"signed"]) {
@@ -132,14 +157,20 @@
 }
 
 - (BOOL)completeMessageIsEncrypted {
-    if([self.plainParts count] || [self.signedParts count]) {
+    if(self.containsPlainParts) {
         return NO;
     }
-    if(!self.containsEncryptedParts || [self.encryptedParts count] > 1) {
+    // Only text parts are considered here, since attachments have their own
+    // status and don't have to be isolated.
+    if(!self.containsEncryptedParts || [[self encryptedTextParts] count] > 1) {
         return NO;
     }
-
+    
     MCMimePart *encryptedPart = [self.encryptedParts objectAtIndex:0];
+    if([self.signedParts count] && self.signedParts[0] != encryptedPart || [self.signedParts count] > 1) {
+        return NO;
+    }
+    
     if([(MimePart_GPGMail *)encryptedPart GMIsEncryptedPGPMIMETree]) {
         return YES;
     }
