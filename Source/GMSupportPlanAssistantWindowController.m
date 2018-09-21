@@ -148,7 +148,12 @@
         trialStarted = NO;
     }
     
-    self.subHeaderTextField.stringValue = [NSString stringWithFormat:@"You can test GPG Mail free for %@ %@days.\nSecure your emails now!", remainingTrialDays, trialStarted && [remainingTrialDays integerValue] != 30 ? @"more " : @""];
+    if(trialStarted && remainingTrialDays <= 0) {
+        self.subHeaderTextField.stringValue = [NSString stringWithFormat:@"Your free trial of GPG Mail has expired.\nPlease purchase our support plan to continue."];
+    }
+    else {
+        self.subHeaderTextField.stringValue = [NSString stringWithFormat:@"You can test GPG Mail free for %@ %@days.\nSecure your emails now!", remainingTrialDays, trialStarted && [remainingTrialDays integerValue] != 30 ? @"more " : @""];
+    }
     self.detailsTextField.attributedStringValue = ({
         [NSAttributedString lo_attributedStringWithBaseAttributes:nil
                                                argumentAttributes:attributes
@@ -160,7 +165,12 @@
     self.continueButton.title = @"Buy Now";
     self.continueButton.tag = GMSupportPlanAssistantBuyActivateButtonStateBuy;
     
-    _emailTextField.delegate = self;
+    if(remainingTrialDays <= 0) {
+        self.cancelButton.title = @"Close";
+    }
+    else {
+        self.cancelButton.title = trialStarted ? @"Continue Trial" : @"Start Trial";
+    }
 }
 
 - (void)setState:(GMSupportPlanAssistantViewControllerState)state {
