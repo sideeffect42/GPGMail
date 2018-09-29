@@ -921,7 +921,7 @@ static BOOL gpgMailWorks = NO;
 }
 
 - (void)saveDateActivationDialogWasLastShown {
-    [[NSUserDefaults standardUserDefaults] setObject:toDateTime forKey:@"__gme3_spd_last_shown_date"];
+    [[NSUserDefaults standardUserDefaults] setObject:[NSDate date] forKey:@"__gme3_spd_last_shown_date"];
 }
 
 - (void)checkSupportContractAndStartWizardIfNecessary {
