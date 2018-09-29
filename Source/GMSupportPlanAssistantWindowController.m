@@ -12,6 +12,12 @@
 
 #import "GPGMailBundle.h"
 
+typedef enum {
+    GMSupportPlanPaddleErrorCodeNetworkError = 99,
+    GMSupportPlanPaddleErrorCodeActivationCodeNotFound = 100,
+    GMSupportPlanPaddleErrorCodeActivationCodeAlreadyUsed = 104
+} GMSupportPlanPaddleErrorCodes;
+
 @interface GMSupportPlanAssistantViewController ()
 
 @property (nonatomic, weak) IBOutlet NSTextField *headerTextField;
@@ -99,9 +105,22 @@
 }
 
 - (void)activationDidFailWithError:(NSError *)error {
-    [(GMSupportPlanAssistantViewController *)[[self window] contentViewController] setState:GMSupportPlanViewControllerStateActivating];
+    [(GMSupportPlanAssistantViewController *)[[self window] contentViewController] setState:GMSupportPlanViewControllerStateBuy];
     NSAlert *alert = [NSAlert new];
-    alert.informativeText = @"The entered activation code is either invalid or might have been used already.\nPlease contact us at business@gpgtools.org if you are sure that you have entered your code correctly.";
+    
+    if(error.code == GMSupportPlanPaddleErrorCodeNetworkError) {
+        alert.informativeText = @"We were unable to connect to the paddle.com API to verify your activation code.\nIf you are using any macOS firewall product (buil-in firewall, Little Snitch, etc.), please allow connections to paddle.com for the activation to complete. You can block any connections again once the activation is completed.\n\nPlease contact us at business@gpgtools.org if the problem persists.";
+    }
+    else if(error.code == GMSupportPlanPaddleErrorCodeActivationCodeNotFound) {
+        alert.informativeText = @"The entered activation code is invalid.\nPlease contact us at business@gpgtools.org if you are sure that you have entered your code correctly.";
+    }
+    else if(error.code == GMSupportPlanPaddleErrorCodeActivationCodeAlreadyUsed) {
+        alert.informativeText = @"We are very sorry to inform you that you have exceeded the allowed number of activations.\nPlease contact us at business@gpgtools.org, if you believe that you should still have activations left.";
+    }
+    else {
+        alert.informativeText = @"Unfortunately an unknown error has occured. Please retry later or use 'System Preferences › GPG Suite › Report Problem' to contact us";
+    }
+    
     alert.messageText = @"Support Plan Activation Failed";
     alert.icon = [NSImage imageNamed:@"GPGMail"];
     [alert beginSheetModalForWindow:[self window] completionHandler:^(NSModalResponse returnCode) {
@@ -227,6 +246,8 @@
 }
 
 - (IBAction)activate:(id)sender {
+    self.emailTextField.stringValue = self.email;
+    self.licenseTextField.stringValue = self.activationCode;
     if([(NSButton *)sender tag] == GMSupportPlanAssistantBuyActivateButtonStateBuy) {
         [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://gpgtools.org/buy-support-plan"]];
     }
