@@ -94,10 +94,10 @@ typedef enum {
 }
 
 - (void)activationDidCompleteWithSuccess {
-    [(GMSupportPlanAssistantViewController *)[[self window] contentViewController] setState:GMSupportPlanViewControllerStateActivating];
+    [(GMSupportPlanAssistantViewController *)[[self window] contentViewController] setState:GMSupportPlanViewControllerStateBuy];
     NSAlert *alert = [NSAlert new];
     alert.messageText = @"Support Plan Activation";
-    alert.informativeText = @"Thank you for your support!\n\nWe hope you enjoy using GPG Mail. Should you have any questions, don't hesitate to contact us via \"Report a Problem\" in Mail -> Preferences -> GPGMail";
+    alert.informativeText = @"Thank you for your support!\n\nWe hope you enjoy using GPG Mail. Should you have any questions, don't hesitate to contact us via \"Report Problem\" in Mail -> Preferences -> GPGMail";
     alert.icon = [NSImage imageNamed:@"GPGMail"];
     [alert beginSheetModalForWindow:[self window] completionHandler:^(NSModalResponse returnCode) {
         [[self delegate] closeSupportPlanAssistant:self];
@@ -167,7 +167,7 @@ typedef enum {
         trialStarted = NO;
     }
     
-    if(trialStarted && remainingTrialDays <= 0) {
+    if(trialStarted && [remainingTrialDays integerValue] <= 0) {
         self.subHeaderTextField.stringValue = [NSString stringWithFormat:@"Your free trial of GPG Mail has expired.\nPlease purchase our support plan to continue."];
     }
     else {
@@ -272,8 +272,21 @@ typedef enum {
 }
 
 - (IBAction)cancel:(id)sender {
-    [[self delegate] supportPlanAssistantShouldStartTrial:[[[self view] window] windowController]];
-    [[self delegate] closeSupportPlanAssistant:[[[self view] window] windowController]];
+    NSDictionary *supportPlanInformation = [[self delegate] contractInformation];
+    NSNumber *remainingTrialDays = [supportPlanInformation valueForKey:@"ActivationRemainingTrialDays"];
+    if([remainingTrialDays integerValue] <= 0) {
+        NSAlert *alert = [NSAlert new];
+        alert.messageText = @"GPG Mail Trial Expired";
+        alert.informativeText = @"Without an active GPG Mail Support Plan you will still be able to read any of your encrypted emails. However, you will no longer be able to sign, encrypt or verify emails.";
+        alert.icon = [NSImage imageNamed:@"GPGMail"];
+        [alert beginSheetModalForWindow:[[self view] window] completionHandler:^(NSModalResponse returnCode) {
+            [[self delegate] closeSupportPlanAssistant:[[[self view] window] windowController]];
+        }];
+    }
+    else {
+        [[self delegate] supportPlanAssistantShouldStartTrial:[[[self view] window] windowController]];
+        [[self delegate] closeSupportPlanAssistant:[[[self view] window] windowController]];
+    }
 }
 
 @end
