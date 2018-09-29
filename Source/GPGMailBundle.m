@@ -856,6 +856,10 @@ static BOOL gpgMailWorks = NO;
     return [contractInformation[@"Active"] boolValue];
 }
 
+- (BOOL)hasActiveContractOrActiveTrial {
+    return [self hasActiveContract] || [[self remainingTrialDays] integerValue] > 0;
+}
+
 - (NSNumber *)remainingTrialDays {
     NSDictionary *contractInformation = [self contractInformation];
     if(!contractInformation[@"ActivationRemainingTrialDays"]) {

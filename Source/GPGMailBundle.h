@@ -182,7 +182,9 @@ extern NSString *gpgErrorIdentifier; // This identifier is used to set and find 
  * Support contract methods
  */
 - (void)checkSupportContractAndStartWizardIfNecessary;
+- (void)startSupportContractWizard;
 - (BOOL)hasActiveContract;
+- (BOOL)hasActiveContractOrActiveTrial;
 - (NSNumber *)remainingTrialDays;
 - (NSDictionary *)fetchContractInformation;
 

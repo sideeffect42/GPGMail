@@ -107,10 +107,10 @@ NSString *SUScheduledCheckIntervalKey = @"SUScheduledCheckInterval";
 	return [[GPGMailBundle sharedInstance] hasActiveContract];
 }
 - (IBAction)activateSupportPlan:(NSButton *)sender {
-	[[GPGMailBundle sharedInstance] checkSupportContractAndStartWizardIfNecessary];
+	[[GPGMailBundle sharedInstance] startSupportContractWizard];
 }
 - (IBAction)learnMore:(NSButton *)sender {
-	[[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://gpgtools.org/faq"]];
+	[[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://gpgtools.org/buy-support-plan"]];
 }
 
 
