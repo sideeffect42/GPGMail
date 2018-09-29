@@ -315,8 +315,6 @@ decisionHandler:(void (^)(WKNavigationActionPolicy))decisionHandler {
 
 #import "GMSupportPlanAssistantWindowController.h"
 
-NSString * const kGMED = @"1$5$3$7:4:7-3-6§0§0";
-
 @interface GPGMailBundle ()
 
 @property GPGErrorCode gpgStatus;
