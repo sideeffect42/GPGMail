@@ -875,9 +875,8 @@ static BOOL gpgMailWorks = NO;
     GMSupportPlanAssistantWindowController *supportPlanAssistantWindowController = [[GMSupportPlanAssistantWindowController alloc] initWithSupportPlanActivationInformation:[self contractInformation]];
     supportPlanAssistantWindowController.delegate = self;
     supportPlanAssistantWindowController.contentViewController = supportPlanAssistantViewController;
-    
-    [[[NSApplication sharedApplication] windows][0] beginSheet:[supportPlanAssistantWindowController window]
-                                              completionHandler:^(NSModalResponse returnCode) {}];
+    [[supportPlanAssistantWindowController window] setTitle:@"GPG Mail Support Plan"];
+    [supportPlanAssistantWindowController showWindow:nil];
 
     [self setIvar:@"Window" value:supportPlanAssistantWindowController];
     [self setIvar:@"View" value:supportPlanAssistantViewController];
@@ -922,7 +921,7 @@ static BOOL gpgMailWorks = NO;
 }
 
 - (void)closeSupportPlanAssistant:(NSWindowController *)windowController {
-    [[[NSApplication sharedApplication] windows][0] endSheet:[windowController window]];
+    [windowController close];
 }
 
 
