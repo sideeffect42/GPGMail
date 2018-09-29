@@ -846,8 +846,8 @@ static BOOL gpgMailWorks = NO;
     GPGTaskHelperXPC *xpc = [[GPGTaskHelperXPC alloc] init];
     NSDictionary __autoreleasing *activationInfo = nil;
     BOOL hasSupportContract = [xpc validSupportContractAvailableForProduct:@"GPGMail" activationInfo:&activationInfo];
-    NSLog(@"[GPGMail %@]: Support contract is valid? %@", [(GPGMailBundle *)[GPGMailBundle sharedInstance] version], hasSupportContract ? @"YES" : @"NO");
-    NSLog(@"[GPGMail %@]: Activation info: %@", [(GPGMailBundle *)[GPGMailBundle sharedInstance] version], activationInfo);
+//    NSLog(@"[GPGMail %@]: Support contract is valid? %@", [(GPGMailBundle *)[GPGMailBundle sharedInstance] version], hasSupportContract ? @"YES" : @"NO");
+//    NSLog(@"[GPGMail %@]: Activation info: %@", [(GPGMailBundle *)[GPGMailBundle sharedInstance] version], activationInfo);
     return activationInfo;
 }
 
@@ -882,8 +882,52 @@ static BOOL gpgMailWorks = NO;
     [self setIvar:@"View" value:supportPlanAssistantViewController];
 }
 
+- (BOOL)shouldShowSupportPlanActivationDialog {
+    if(![self hasActiveContractOrActiveTrial]) {
+        [self saveDateActivationDialogWasLastShown];
+        return YES;
+    }
+    NSDictionary *contractInfo = [self contractInformation];
+    // Trial has never been started?
+    if(![contractInfo valueForKey:@"ActivationRemainingTrialDays"]) {
+        [self saveDateActivationDialogWasLastShown];
+        return YES;
+    }
+    NSDate *date = [[NSUserDefaults standardUserDefaults] objectForKey:@"__gme3_spd_last_shown_date"];
+    if(!date) {
+        [self saveDateActivationDialogWasLastShown];
+        return YES;
+    }
+    // Check if between date now and date last are 3 days.
+
+    NSDate *fromDateTime = date;
+    NSDate *toDateTime = [NSDate date];
+
+    NSDate *fromDate;
+    NSDate *toDate;
+
+    NSCalendar *calendar = [NSCalendar currentCalendar];
+
+    [calendar rangeOfUnit:NSCalendarUnitDay startDate:&fromDate
+                 interval:NULL forDate:fromDateTime];
+    [calendar rangeOfUnit:NSCalendarUnitDay startDate:&toDate
+                 interval:NULL forDate:toDateTime];
+    
+    NSDateComponents *difference = [calendar components:NSCalendarUnitDay
+                                               fromDate:fromDate toDate:toDate options:0];
+    if([difference day] >= 3) {
+        [self saveDateActivationDialogWasLastShown];
+        return YES;
+    }
+    return NO;
+}
+
+- (void)saveDateActivationDialogWasLastShown {
+    [[NSUserDefaults standardUserDefaults] setObject:toDateTime forKey:@"__gme3_spd_last_shown_date"];
+}
+
 - (void)checkSupportContractAndStartWizardIfNecessary {
-    if(![self hasActiveContract]) {
+    if(![self hasActiveContract] && [self shouldShowSupportPlanActivationDialog]) {
         [self startSupportContractWizard];
     }
 }
