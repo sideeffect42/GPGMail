@@ -1914,6 +1914,9 @@ NSString * const kMimePartAllowPGPProcessingKey = @"MimePartAllowPGPProcessingKe
     // first part following. So the rule is, if any parent is multipart/mixed
     // and this is a multipart/signed part which is not the first child part,
     // don't verify.
+    if(![[GPGMailBundle sharedInstance] hasActiveContractOrActiveTrial]) {
+        return;
+    }
     if([self GMAnyParentMatchesType:@"multipart" subtype:nil]) {
         if([[MAIL_SELF(self) parentPart] firstChildPart] != MAIL_SELF(self)) {
             return;

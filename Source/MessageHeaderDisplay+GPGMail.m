@@ -241,6 +241,9 @@
 }
 
 - (id)MA_displayStringForSecurityKey {
+    if(![[GPGMailBundle sharedInstance] hasActiveContractOrActiveTrial]) {
+        return [self MA_displayStringForSecurityKey];
+    }
     GM_CAST_CLASS(MCMessage *, id) message = (Message_GPGMail *)[(ConversationMember *)[(HeaderViewController *)self representedObject] originalMessage];
     
     GMMessageSecurityFeatures *securityProperties = [message securityFeatures];
