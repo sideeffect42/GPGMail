@@ -313,6 +313,23 @@ decisionHandler:(void (^)(WKNavigationActionPolicy))decisionHandler {
 
 @end
 
+@interface MailApp_GPGMail : NSObject
+
+- (void)MATabView:(id)tabView didSelectTabViewItem:(nullable NSTabViewItem *)tabViewItem;
+
+@end
+
+@implementation MailApp_GPGMail
+
+- (void)MATabView:(id)tabView didSelectTabViewItem:(nullable NSTabViewItem *)tabViewItem {
+    [self MATabView:tabView didSelectTabViewItem:tabViewItem];
+    if([[[tabViewItem viewController] representedObject] isKindOfClass:[GPGMailPreferences class]]) {
+        [[[tabViewItem viewController] representedObject] willBeDisplayed];
+    }
+}
+
+@end
+
 #import "GMSupportPlanAssistantWindowController.h"
 
 @interface GPGMailBundle ()
@@ -944,6 +961,7 @@ static BOOL gpgMailWorks = NO;
                 NSMutableDictionary *activationInfo = [NSMutableDictionary dictionaryWithDictionary:_activationInfo];
                 [activationInfo setObject:@(YES) forKey:@"Active"];
                 _activationInfo = (NSDictionary *)activationInfo;
+                [[NSNotificationCenter defaultCenter] postNotificationName:@"GMSupportPlanStateChangeNotification" object:self];
             }
             else {
                 [(GMSupportPlanAssistantWindowController *)windowController activationDidFailWithError:finalError];

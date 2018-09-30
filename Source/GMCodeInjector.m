@@ -607,6 +607,11 @@
              @"MCMessageHeaders": @{
                      @"selectors": @[
                              @"headersForKey:"]
+                     },
+             @"MailApp": @{
+                     @"selectors": @[
+                             @"tabView:didSelectTabViewItem:"
+                             ]
                      }
      };
 }
