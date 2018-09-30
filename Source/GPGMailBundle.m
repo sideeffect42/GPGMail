@@ -960,6 +960,8 @@ static BOOL gpgMailWorks = NO;
                 [(GMSupportPlanAssistantWindowController *)windowController activationDidCompleteWithSuccess];
                 NSMutableDictionary *activationInfo = [NSMutableDictionary dictionaryWithDictionary:_activationInfo];
                 [activationInfo setObject:@(YES) forKey:@"Active"];
+                [activationInfo setObject:activationCode forKey:@"ActivationCode"];
+                [activationInfo setObject:email forKey:@"ActivationEmail"];
                 _activationInfo = (NSDictionary *)activationInfo;
                 [[NSNotificationCenter defaultCenter] postNotificationName:@"GMSupportPlanStateChangeNotification" object:self];
             }
