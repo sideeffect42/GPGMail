@@ -246,12 +246,17 @@ typedef enum {
 }
 
 - (IBAction)activate:(id)sender {
-    self.emailTextField.stringValue = self.email;
-    self.licenseTextField.stringValue = self.activationCode;
     if([(NSButton *)sender tag] == GMSupportPlanAssistantBuyActivateButtonStateBuy) {
         [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://gpgtools.org/buy-support-plan"]];
     }
     else {
+        if(self.email && self.emailTextField.stringValue != self.email) {
+            self.emailTextField.stringValue = self.email;
+        }
+        if(self.activationCode && self.licenseTextField.stringValue != self.activationCode) {
+            self.licenseTextField.stringValue = self.activationCode;
+        }
+        
         if(![self validateActivationInformation]) {
             [(GMSupportPlanAssistantWindowController *)[[[self view] window] windowController] showActivationError];
         }
