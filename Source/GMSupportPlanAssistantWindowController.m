@@ -274,7 +274,9 @@ typedef enum {
 - (IBAction)cancel:(id)sender {
     NSDictionary *supportPlanInformation = [[self delegate] contractInformation];
     NSNumber *remainingTrialDays = [supportPlanInformation valueForKey:@"ActivationRemainingTrialDays"];
-    if([remainingTrialDays integerValue] <= 0) {
+    // Take into consideration that no information about remaining trial days is available, the trial
+    // hasn't been started yet.
+    if(remainingTrialDays && [remainingTrialDays integerValue] <= 0) {
         NSAlert *alert = [NSAlert new];
         alert.messageText = @"GPG Mail Trial Expired";
         alert.informativeText = @"Without an active GPG Mail Support Plan you will still be able to read any of your encrypted emails. However, you will no longer be able to sign, encrypt or verify emails.";
