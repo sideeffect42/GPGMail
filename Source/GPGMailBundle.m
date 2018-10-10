@@ -350,6 +350,7 @@ NSString *gpgErrorIdentifier = @"^~::gpgmail-error-code::~^";
 static NSString * const kExpiredCheckKey = @"__gme3__";
 
 NSString * const kGMAllowDecryptionOfDangerousMessagesMissingMDCKey = @"GMAllowDecryptionOfDangerousMessagesMissingMDC";
+NSString * const kGMShouldNotConvertPGPPartitionedMessagesKey = @"GMShouldNotConvertPGPPartitionedMessagesKey";
 
 int GPGMailLoggingLevel = 0;
 static BOOL gpgMailWorks = NO;
@@ -481,7 +482,7 @@ static BOOL gpgMailWorks = NO;
         _messageRulesApplier = [[GMMessageRulesApplier alloc] init];
         
         [self setAllowDecryptionOfPotentiallyDangerousMessagesWithoutMDC:[[[GPGOptions sharedOptions] valueForKey:@"AllowDecryptionOfPotentiallyDangerousMessagesWithoutMDC"] boolValue]];
-        
+        [self setShouldConvertPGPPartitionedMessages:[[[GPGOptions sharedOptions] valueForKey:@"ShouldNotConvertPGPPartitionedMessages"] boolValue]];
         // Start the GPG checker.
         [self startGPGChecker];
         
@@ -507,6 +508,14 @@ static BOOL gpgMailWorks = NO;
 
 - (BOOL)allowDecryptionOfPotentiallyDangerousMessagesWithoutMDC {
     return [[self getIvar:kGMAllowDecryptionOfDangerousMessagesMissingMDCKey] boolValue];
+}
+
+- (void)setShouldNotConvertPGPPartitionedMessages:(BOOL)shouldConvertPGPPartitionedMessages {
+    [self setIvar:kGMShouldNotConvertPGPPartitionedMessagesKey value:@(shouldConvertPGPPartitionedMessages)];
+}
+
+- (BOOL)shouldNotConvertPGPPartitionedMessages {
+    return [[self getIvar:kGMShouldNotConvertPGPPartitionedMessagesKey] boolValue];
 }
 
 - (void)dealloc {
