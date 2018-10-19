@@ -93,62 +93,6 @@
 
 @end
 
-#import "LoadRemoteContentBannerViewController.h"
-
-@interface LoadRemoteContentBannerViewController_GPGMail : NSObject
-@end
-
-
-@implementation LoadRemoteContentBannerViewController_GPGMail
-
-- (BOOL)MAWantsDisplay {
-    BOOL wantsDisplay = [self MAWantsDisplay];
-    if(![self isMemberOfClass:NSClassFromString(@"LoadRemoteContentBannerViewController")]) {
-        return wantsDisplay;
-    }
-    if([(MUIWebDocument *)[(LoadRemoteContentBannerViewController *)self webDocument] isEncrypted]) {
-        return NO;
-    }
-    return wantsDisplay;
-}
-
-- (void)MA_hasBlockedRemoteContentDidChange:(BOOL)arg1 {
-    if([(MUIWebDocument *)[(LoadRemoteContentBannerViewController *)self webDocument] isEncrypted]) {
-        if([self respondsToSelector:@selector(loadRemoteContentButton)]) {
-            NSButton *loadRemoteContentButton = [(LoadRemoteContentBannerViewController *)self loadRemoteContentButton];
-            [loadRemoteContentButton setHidden:YES];
-            [loadRemoteContentButton setEnabled:NO];
-        }
-    }
-    else {
-        [self MA_hasBlockedRemoteContentDidChange:arg1];
-    }
-}
-
-@end
-
-#import "JunkMailBannerViewController.h"
-
-@interface JunkMailBannerViewController_GPGMail : NSObject
-@end
-
-@implementation JunkMailBannerViewController_GPGMail
-
-- (void)MAUpdateBannerContents {
-    [self MAUpdateBannerContents];
-    if(![self isMemberOfClass:NSClassFromString(@"JunkMailBannerViewController")]) {
-        return;
-    }
-    if([(MUIWebDocument *)[(LoadRemoteContentBannerViewController *)self webDocument] isEncrypted]) {
-        [[(LoadRemoteContentBannerViewController *)self loadRemoteContentButton] setHidden:YES];
-    }
-}
-
-@end
-
-
-
-
 @interface MUIWKWebViewController_GPGMail : NSObject
 
 - (id)representedObject;
@@ -809,6 +753,14 @@ static BOOL gpgMailWorks = NO;
     return [info isOperatingSystemAtLeastVersion:requiredVersion];
 }
 
++ (BOOL)isMojave {
+    NSProcessInfo *info = [NSProcessInfo processInfo];
+    if(![info respondsToSelector:@selector(isOperatingSystemAtLeastVersion:)])
+        return NO;
+
+    NSOperatingSystemVersion requiredVersion = {10,14,0};
+    return [info isOperatingSystemAtLeastVersion:requiredVersion];
+}
 
 + (BOOL)hasPreferencesPanel {
     // LEOPARD Invoked on +initialize. Else, invoked from +registerBundle.
