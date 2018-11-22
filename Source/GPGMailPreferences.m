@@ -104,7 +104,12 @@ NSString *SUScheduledCheckIntervalKey = @"SUScheduledCheckInterval";
 }
 
 - (void)updateSupportPlanSection:(NSNotification *)notification {
-    [self setState:GPGMailPreferencesSupportPlanStateActiveState];
+    // Check if the outlets are set, otherwise it means that
+    // the preferences are not currently being presented and so
+    // there's no need to change the state.
+    if(_activationCodeTextField != nil) {
+        [self setState:GPGMailPreferencesSupportPlanStateActiveState];
+    }
 }
 
 - (NSString *)registrationCode {
