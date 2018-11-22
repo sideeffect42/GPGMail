@@ -128,6 +128,12 @@ typedef enum {
     }];
 }
 
+- (void)performAutomaticSupportPlanActivationWithActivationCode:(NSString *)activationCode email:(NSString *)email {
+    GMSupportPlanAssistantViewController *supportPlanAssistantViewController = (GMSupportPlanAssistantViewController *)[self contentViewController];
+    [supportPlanAssistantViewController performAutomaticSupportPlanActivationWithActivationCode:activationCode email:email];
+    return;
+}
+
 - (instancetype)initWithSupportPlanActivationInformation:(NSDictionary *)supportPlanInformation {
     self = [super init];
     if(self) {
@@ -294,6 +300,12 @@ typedef enum {
         [[self delegate] supportPlanAssistantShouldStartTrial:[[[self view] window] windowController]];
         [[self delegate] closeSupportPlanAssistant:[[[self view] window] windowController]];
     }
+}
+
+- (void)performAutomaticSupportPlanActivationWithActivationCode:(NSString *)activationCode email:(NSString *)email {
+    self.email = email;
+    self.activationCode = activationCode;
+    [self activate:_continueButton];
 }
 
 @end
