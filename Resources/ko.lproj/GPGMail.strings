@@ -2,7 +2,7 @@
 "VERSION: %@" = "버전: %@";
 
 /* PGP preferences panel name */
-"PGP_PREFERENCES" = "GPGMail";
+"PGP_PREFERENCES" = "GPG Mail";
 
 /* Message Error Banner messages. */
 "MESSAGE_BANNER_PGP_DECRYPT_ERROR_TITLE" = "PGP 메시지를 복호화 할수 없습니다.";

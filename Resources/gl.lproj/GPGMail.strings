@@ -2,7 +2,7 @@
 "VERSION: %@" = "Versión: %@";
 
 /* PGP preferences panel name */
-"PGP_PREFERENCES" = "GPGMail";
+"PGP_PREFERENCES" = "GPG Mail";
 
 /* Message Error Banner messages. */
 "MESSAGE_BANNER_PGP_DECRYPT_ERROR_TITLE" = "Non é posíbel descifrar a mensaxe PGP.";
