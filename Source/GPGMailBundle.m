@@ -639,14 +639,21 @@ static BOOL gpgMailWorks = NO;
 #pragma mark Localization Helper
 
 + (NSString *)localizedStringForKey:(NSString *)key {
-    NSBundle *gmBundle = [GPGMailBundle bundle];
-    NSString *localizedString = NSLocalizedStringFromTableInBundle(key, @"GPGMail", gmBundle, @"");
-    // Translation found, out of here.
-    if(![localizedString isEqualToString:key])
-        return localizedString;
+    static dispatch_once_t onceToken;
+    static NSBundle *gmBundle = nil, *englishBundle = nil;
+    dispatch_once(&onceToken, ^{
+        gmBundle = [GPGMailBundle bundle];
+        englishBundle = [NSBundle bundleWithPath:[gmBundle pathForResource:@"en" ofType:@"lproj"]];
+    });
     
-    NSBundle *englishLanguageBundle = [NSBundle bundleWithPath:[gmBundle pathForResource:@"en" ofType:@"lproj"]];
-    return [englishLanguageBundle localizedStringForKey:key value:@"" table:@"GPGMail"];
+    NSString *notFoundValue = @"~#*?*#~";
+    NSString *localizedString = [gmBundle localizedStringForKey:key value:notFoundValue table:@"GPGMail"];
+    if (localizedString == notFoundValue) {
+        // No translation found. Use the english string.
+        localizedString = [englishBundle localizedStringForKey:key value:nil table:@"GPGMail"];
+    }
+
+    return localizedString;
 }
 
 #pragma mark General Infos
