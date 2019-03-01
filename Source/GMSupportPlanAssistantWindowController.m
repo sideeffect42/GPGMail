@@ -178,7 +178,7 @@ typedef enum {
     }
     
     if(trialStarted && [remainingTrialDays integerValue] <= 0) {
-        self.subHeaderTextField.stringValue = [GPGMailBundle localizedStringForKey:@"SUPPORT_PLAN_HEADER_EXPIRED"]; // "Your free trial of GPG Mail has expired.\nPlease purchase our support plan to continue."
+		self.subHeaderTextField.stringValue = [GPGMailBundle localizedStringForKey:@"SUPPORT_PLAN_HEADER_EXPIRED"]; // "Your 30-day-trial of GPG Mail has expired. Encrypting, signing and verifying messages will stop to work. Decrypting however will always continue to work.\nPurchase GPG Mail Support Plan to continue with full functionality."
     }
     else {
 		NSString *format;
@@ -202,7 +202,7 @@ typedef enum {
     self.continueButton.tag = GMSupportPlanAssistantBuyActivateButtonStateBuy;
     
     if([remainingTrialDays integerValue] <= 0) {
-        self.cancelButton.title = [GPGMailBundle localizedStringForKey:@"SUPPORT_PLAN_CLOSE"]; // "Close"
+        self.cancelButton.title = [GPGMailBundle localizedStringForKey:@"SUPPORT_PLAN_CLOSE"]; // "Continue"
     }
 	else if (trialStarted) {
 		self.cancelButton.title = [GPGMailBundle localizedStringForKey:@"SUPPORT_PLAN_CONTINUE_TRIAL"]; // "Continue Trial"
