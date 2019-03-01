@@ -122,7 +122,7 @@ typedef enum {
         alert.informativeText = [GPGMailBundle localizedStringForKey:@"SUPPORT_PLAN_ACTIVATION_FAILED_TOO_MANY_ACTIVATIONS"]; // "We are very sorry to inform you that you have exceeded the allowed number of activations.\nPlease contact us at business@gpgtools.org, if you believe that you should still have activations left."
     }
     else {
-        alert.informativeText = [GPGMailBundle localizedStringForKey:@"SUPPORT_PLAN_ACTIVATION_FAILED_GENERAL_ERROR"]; // "Unfortunately an unknown error has occured. Please retry later or use 'System Preferences › GPG Suite › Report Problem' to contact us"
+        alert.informativeText = [GPGMailBundle localizedStringForKey:@"SUPPORT_PLAN_ACTIVATION_FAILED_GENERAL_ERROR"]; // "Unfortunately an unknown error has occurred. Please retry later or use 'System Preferences › GPG Suite › Send Report' to contact us"
     }
     
     alert.messageText = [GPGMailBundle localizedStringForKey:@"SUPPORT_PLAN_ACTIVATION_FAILED_TITLE"]; // "Support Plan Activation Failed"
