@@ -201,7 +201,7 @@ typedef enum {
     self.continueButton.title = [GPGMailBundle localizedStringForKey:@"SUPPORT_PLAN_BUY"]; // "Buy Now"
     self.continueButton.tag = GMSupportPlanAssistantBuyActivateButtonStateBuy;
     
-    if(remainingTrialDays <= 0) {
+    if([remainingTrialDays integerValue] <= 0) {
         self.cancelButton.title = [GPGMailBundle localizedStringForKey:@"SUPPORT_PLAN_CLOSE"]; // "Close"
     }
 	else if (trialStarted) {
