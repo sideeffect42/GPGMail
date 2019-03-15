@@ -5,14 +5,12 @@
 "382.title" = "The signature could not be verified.";
 "383.title" = "The signature could not be verified because the public key is not in your keychain.\nPlease download the key using GPG Keychain.";
 "6t7-dx-6mx.title" = "Key";
-"Gei-q9-4xZ.title" = "email";
 "MKa-KU-Fzx.title" = "Created:";
 "RGL-aT-6EF.title" = "Created:";
 "SAw-Gt-eUD.title" = "Fingerprint:";
 "Sf1-36-MTl.title" = "Signature";
 "VQR-px-dgf.title" = "Expires:";
 "XV6-yY-eN8.title" = "Fingerprint:";
-"e2W-4w-Zis.title" = "name";
 "rJX-tZ-dAy.title" = "Expires:";
 "yup-hd-kNW.ibShadowedIsNilPlaceholder" = "Never";
 "zYv-oF-108.ibShadowedIsNilPlaceholder" = "Never";
