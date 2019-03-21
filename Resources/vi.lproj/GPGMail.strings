@@ -185,7 +185,7 @@ NO_DEFAULTS_MESSAGE = "GPG Mail is not working as expected.\n\nPlease download a
 "MESSAGE_SIGNING_ERROR_AGENT_ERROR_DESCRIPTION" = "It was not possible to talk to the GPG agent in order to request your password.\n\nTo fix this problem, re-install GPG Suite from https://gpgtools.org.";
 
 "MESSAGE_SIGNING_ERROR_UNKNOWN_ERROR_TITLE" = "Việc áp dụng chữ ký vào tin nhắn đã thất bại vì một lỗi chưa được nhận dạng đã xảy ra";
-"MESSAGE_SIGNING_ERROR_UNKNOWN_ERROR_DESCRIPTION" = "Xin cáo lỗi, chúng tôi hiện không thể xử lý lỗi này.";
+"MESSAGE_SIGNING_ERROR_UNKNOWN_ERROR_DESCRIPTION" = "Xin cáo lỗi, GPG Mail hiện không thể xử lý về vấn đề lỗi này.";
 
 "MESSAGE_ENCRYPTION_ERROR_UNKNOWN_ERROR_TITLE" = "Việc mã hóa tin nhắn của bạn đã thất bại vì một lỗi chưa biết đến đã xảy ra";
 "MESSAGE_ENCRYPTION_ERROR_UNKNOWN_ERROR_DESCRIPTION" = "Xin cáo lỗi, GPG Mail hiện không thể xử lý về vấn đề lỗi này.";

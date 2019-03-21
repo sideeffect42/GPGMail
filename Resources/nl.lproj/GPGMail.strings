@@ -185,7 +185,7 @@ NO_DEFAULTS_MESSAGE = "GPG Mail werkt niet naar behoren.\n\nDownload en her-inst
 "MESSAGE_SIGNING_ERROR_AGENT_ERROR_DESCRIPTION" = "Het was niet mogelijk gegevens uit te wisselen met de GPG agent om zo uw wachtwoord op te vragen.\n\nOm dit probleem op te lossen, moet u de GPG Suite opnieuw installeren van https://gpgtools.org.\n";
 
 "MESSAGE_SIGNING_ERROR_UNKNOWN_ERROR_TITLE" = "Het ondertekenen van uw bericht is niet gelukt vanwege een niet verder gespecificeerde fout.";
-"MESSAGE_SIGNING_ERROR_UNKNOWN_ERROR_DESCRIPTION" = "Helaas kan de fout die opgetreden is niet meer gecorrigeerd worden.";
+"MESSAGE_SIGNING_ERROR_UNKNOWN_ERROR_DESCRIPTION" = "Helaas kan GPG Mail de fout die is opgetreden niet meer corrigeren.";
 
 "MESSAGE_ENCRYPTION_ERROR_UNKNOWN_ERROR_TITLE" = "Het versleutelen van uw bericht is niet gelukt vanwege een niet verder gespecificeerde fout.";
 "MESSAGE_ENCRYPTION_ERROR_UNKNOWN_ERROR_DESCRIPTION" = "Helaas kan GPG Mail de fout die is opgetreden niet meer corrigeren.";

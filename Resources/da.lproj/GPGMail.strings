@@ -185,7 +185,7 @@ NO_DEFAULTS_MESSAGE = "GPG Mail virker ikke som forventet.\n\nHent og gen-instal
 "MESSAGE_SIGNING_ERROR_AGENT_ERROR_DESCRIPTION" = "Det var ikke muligt at snakke med GPG agenten for at bede om din adgangskode.\n\nFor at løse dette problem skal du geninstallere GPG Suiten fra https://gpgtools.org.";
 
 "MESSAGE_SIGNING_ERROR_UNKNOWN_ERROR_TITLE" = "Underskrivning af din besked fejlede af en ukendt grund";
-"MESSAGE_SIGNING_ERROR_UNKNOWN_ERROR_DESCRIPTION" = "Desværre kan vi ikke håndtere denne fejl på nuværende tidspunkt.";
+"MESSAGE_SIGNING_ERROR_UNKNOWN_ERROR_DESCRIPTION" = "Desværre kan GPG Mail ikke håndtere denne fejl på nuværende tidspunkt.";
 
 "MESSAGE_ENCRYPTION_ERROR_UNKNOWN_ERROR_TITLE" = "Kryptering af din besked fejlede af en ukendt grund";
 "MESSAGE_ENCRYPTION_ERROR_UNKNOWN_ERROR_DESCRIPTION" = "Desværre kan GPG Mail ikke håndtere denne fejl på nuværende tidspunkt.";

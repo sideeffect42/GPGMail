@@ -185,7 +185,7 @@ NO_DEFAULTS_MESSAGE = "GPG Mail fonciona pas coma esperat.\n\nMercé de telecarg
 "MESSAGE_SIGNING_ERROR_AGENT_ERROR_DESCRIPTION" = "It was not possible to talk to the GPG agent in order to request your password.\n\nTo fix this problem, re-install GPG Suite from https://gpgtools.org.";
 
 "MESSAGE_SIGNING_ERROR_UNKNOWN_ERROR_TITLE" = "La signatura de vòstre messatge a fracassat a causa d'una error desconeguda.";
-"MESSAGE_SIGNING_ERROR_UNKNOWN_ERROR_DESCRIPTION" = "Podèm malurosament pas tractar l'error dins aqueste contèxte.";
+"MESSAGE_SIGNING_ERROR_UNKNOWN_ERROR_DESCRIPTION" = "GPG Mail pòt malurosament pas tractar l'error dins aqueste contèxte.";
 
 "MESSAGE_ENCRYPTION_ERROR_UNKNOWN_ERROR_TITLE" = "Lo chiframent del messatge a fracassat a causa d'una error desconeguda.";
 "MESSAGE_ENCRYPTION_ERROR_UNKNOWN_ERROR_DESCRIPTION" = "GPG Mail pòt malurosament pas tractar l'error dins aqueste contèxte.";

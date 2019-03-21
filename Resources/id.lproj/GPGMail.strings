@@ -185,7 +185,7 @@ NO_DEFAULTS_MESSAGE = "GPG Mail tidak bekerja seperti yang diharapkan.\n\nHarap 
 "MESSAGE_SIGNING_ERROR_AGENT_ERROR_DESCRIPTION" = "Tidak mungkin berbicara dengan agen GPG untuk meminta kata sandi Anda.\n\nUntuk memperbaiki masalah ini, pasang ulang GPG Suite dari https://gpgtools.org.";
 
 "MESSAGE_SIGNING_ERROR_UNKNOWN_ERROR_TITLE" = "Penandatanganan pesan Anda gagal karena galat yang tak dikenal telah terjadi";
-"MESSAGE_SIGNING_ERROR_UNKNOWN_ERROR_DESCRIPTION" = "Sayang sekali kami tak bisa menangani galat pada titik ini.";
+"MESSAGE_SIGNING_ERROR_UNKNOWN_ERROR_DESCRIPTION" = "Sayang sekali GPG Mail tak bisa menangani galat pada titik ini.";
 
 "MESSAGE_ENCRYPTION_ERROR_UNKNOWN_ERROR_TITLE" = "Penyandian pesan Anda gagal karena kesalahan yang tak dikenal telah terjadi";
 "MESSAGE_ENCRYPTION_ERROR_UNKNOWN_ERROR_DESCRIPTION" = "Sayang sekali GPG Mail tak bisa menangani galat pada titik ini.";

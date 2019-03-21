@@ -185,7 +185,7 @@ NO_DEFAULTS_MESSAGE = "GPG Mail fungerer ikke som forventet.\n\nVennligst last n
 "MESSAGE_SIGNING_ERROR_AGENT_ERROR_DESCRIPTION" = "Det var ikke mulig å få kontakt med GPG-agenten for å be om passordet ditt.\n\nFor å fikse dette problemet, installer GPG Suite på nytt fra https://gpgtools.org.";
 
 "MESSAGE_SIGNING_ERROR_UNKNOWN_ERROR_TITLE" = "Signering av meldingen din mislyktes fordi det har oppstått en ukjent feil";
-"MESSAGE_SIGNING_ERROR_UNKNOWN_ERROR_DESCRIPTION" = "Uheldigvis kan vi ikke fikse denne feilen på det nåværende tidspunkt. ";
+"MESSAGE_SIGNING_ERROR_UNKNOWN_ERROR_DESCRIPTION" = "Uheldigvis kan ikke GPG Mail fikse denne feilen på det nåværende tidspunkt.";
 
 "MESSAGE_ENCRYPTION_ERROR_UNKNOWN_ERROR_TITLE" = "Kryptering av meldingen din mislyktes fordi det har oppstått en ukjent feil";
 "MESSAGE_ENCRYPTION_ERROR_UNKNOWN_ERROR_DESCRIPTION" = "Uheldigvis kan ikke GPG Mail fikse denne feilen på det nåværende tidspunkt.";

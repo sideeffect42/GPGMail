@@ -185,7 +185,7 @@ NO_DEFAULTS_MESSAGE = "GPG Mail non funziona come previsto.\n\nSi prega di scari
 "MESSAGE_SIGNING_ERROR_AGENT_ERROR_DESCRIPTION" = "It was not possible to talk to the GPG agent in order to request your password.\n\nTo fix this problem, re-install GPG Suite from https://gpgtools.org.";
 
 "MESSAGE_SIGNING_ERROR_UNKNOWN_ERROR_TITLE" = "La firma del messaggio non è riuscita perché si è verificato un errore sconosciuto";
-"MESSAGE_SIGNING_ERROR_UNKNOWN_ERROR_DESCRIPTION" = "Purtroppo non siamo in grado di gestire l'errore a questo punto.";
+"MESSAGE_SIGNING_ERROR_UNKNOWN_ERROR_DESCRIPTION" = "Purtroppo GPG Mail non può gestire l'errore a questo punto.";
 
 "MESSAGE_ENCRYPTION_ERROR_UNKNOWN_ERROR_TITLE" = "La crittografia del tuo messaggio non è riuscita perché si è verificato un errore sconosciuto";
 "MESSAGE_ENCRYPTION_ERROR_UNKNOWN_ERROR_DESCRIPTION" = "Purtroppo GPG Mail non può gestire l'errore a questo punto.";

@@ -185,7 +185,7 @@ NO_DEFAULTS_MESSAGE = "GPG Mail не работает, как ожидалось
 "MESSAGE_SIGNING_ERROR_AGENT_ERROR_DESCRIPTION" = "Не возможно связаться с агентом GPG, чтобы запросить ваш пароль.\n\nЧтобы исправить эту проблему, переустановите GPG Suite с сайта https://gpgtools.org.";
 
 "MESSAGE_SIGNING_ERROR_UNKNOWN_ERROR_TITLE" = "Не удалось подписать ваше сообщение, потому что произошла неизвестная ошибка";
-"MESSAGE_SIGNING_ERROR_UNKNOWN_ERROR_DESCRIPTION" = "К сожалению, мы не можем обработать ошибку в этой точке.";
+"MESSAGE_SIGNING_ERROR_UNKNOWN_ERROR_DESCRIPTION" = "К сожалению, GPG Mail не может обработать ошибку в этой точке.";
 
 "MESSAGE_ENCRYPTION_ERROR_UNKNOWN_ERROR_TITLE" = "Не удалось зашифровать сообщение, потому что произошла неизвестная ошибка";
 "MESSAGE_ENCRYPTION_ERROR_UNKNOWN_ERROR_DESCRIPTION" = "К сожалению, GPG Mail не может обработать ошибку в этой точке.";

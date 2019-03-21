@@ -185,7 +185,7 @@ NO_DEFAULTS_MESSAGE = "El GPG Mail no funciona com deuria.\n\nBaixeu i reinstal�
 "MESSAGE_SIGNING_ERROR_AGENT_ERROR_DESCRIPTION" = "És impossible contactar amb l'agent GPG per a sol·licitar la contrasenya.\n\nPer a corregir el problema, reinstal·leu GPG Suite des de https://gpgtools.org.";
 
 "MESSAGE_SIGNING_ERROR_UNKNOWN_ERROR_TITLE" = "El missatge no s'ha signat perquè ha ocorregut un error desconegut";
-"MESSAGE_SIGNING_ERROR_UNKNOWN_ERROR_DESCRIPTION" = "Malauradament, no podem gestionar l'error en aquest punt.";
+"MESSAGE_SIGNING_ERROR_UNKNOWN_ERROR_DESCRIPTION" = "Malauradament, el GPG Mail no pot gestionar l'error en aquest punt.";
 
 "MESSAGE_ENCRYPTION_ERROR_UNKNOWN_ERROR_TITLE" = "El xifratge del missatge ha fallat perquè hi hagut un error desconegut";
 "MESSAGE_ENCRYPTION_ERROR_UNKNOWN_ERROR_DESCRIPTION" = "Malauradament, el GPG Mail no pot gestionar l'error en aquest punt.";

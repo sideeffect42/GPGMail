@@ -185,7 +185,7 @@ NO_DEFAULTS_MESSAGE = "GPG Mail ne fonctionne pas comme attendu.\n\nMerci de té
 "MESSAGE_SIGNING_ERROR_AGENT_ERROR_DESCRIPTION" = "Il n'a pas été possible de communiquer avec l'agent GPG afin de récupérer votre mot de passe.\n\nPour résoudre ce problème, ré-installer GPG Suite depuis https://gpgtools.org.";
 
 "MESSAGE_SIGNING_ERROR_UNKNOWN_ERROR_TITLE" = "La signature de votre message a échoué à cause d'une erreur inconnue.";
-"MESSAGE_SIGNING_ERROR_UNKNOWN_ERROR_DESCRIPTION" = "Nous ne pouvons malheureusement pas traiter l'erreur dans ce contexte.";
+"MESSAGE_SIGNING_ERROR_UNKNOWN_ERROR_DESCRIPTION" = "GPG Mail ne peut malheureusement pas traiter l'erreur dans ce contexte.";
 
 "MESSAGE_ENCRYPTION_ERROR_UNKNOWN_ERROR_TITLE" = "Le chiffrage du message a échoué à cause d'une erreur inconnue.";
 "MESSAGE_ENCRYPTION_ERROR_UNKNOWN_ERROR_DESCRIPTION" = "GPG Mail ne peut malheureusement pas traiter l'erreur dans ce contexte.";
