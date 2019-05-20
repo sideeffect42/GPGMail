@@ -160,7 +160,7 @@ NSString *SUScheduledCheckIntervalKey = @"SUScheduledCheckInterval";
 	
 	BOOL success = NO;
 	if (path) {
-		success = [GPGTask launchGeneralTask:path withArguments:@[@"report"] wait:YES];
+		success = [GPGTask launchGeneralTask:path withArguments:@[@"-tab", @"report", @"-tool", @"gpgmail"] wait:YES];
 	}
 	
 	if (!success) {
