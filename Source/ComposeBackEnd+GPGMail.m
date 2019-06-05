@@ -179,6 +179,26 @@ NSString * const kLibraryMimeBodyReturnCompleteBodyDataForComposeBackendKey = @"
     // When message creation failed, `outgoingMessage` will be `nil`.
     // It's however also possible that the user cancelled the pinentry dialog, in which case
     // `outgoingMessage` contains a valid message but an error is set on the current activity monitor.
+    
+    // Bug #999: GPG Mail randomly displays an error alert during message creation
+    //
+    // In case `creationError` was not nil, GPG Mail falsely assumed that an error
+    // in relation to encrypting or signing the message had occurred and would return nil
+    // instead of a valid outgoing message. As a result the user would be presented with an error dialog.
+    //
+    // In most reported cases, the error was related to Mail temporarily being unable to contact a mail server.
+    //
+    // In order to properly handle these cases, GPG Mail must compare the error code
+    // of errors set on the current monitor against the error codes for
+    // signing or encryption errors.
+    // Only if the error is either a signing or encryption error, nil is returned
+    // instead of an outgoing message object to have Mail present an error alert to
+    // the user if necessary.
+    if([creationError code] != 1035 && [creationError code] != 1036) {
+        // The error is not relevant for GPG Mail. Mail will deal with it when checking
+        // [[MCActivityMonitor currentMonitor] error]
+        creationError = nil;
+    }
     BOOL messageCreationSucceeded = outgoingMessage != nil && !creationError;
     if(!messageCreationSucceeded) {
         // If a draft should have been created, the user is presented with an error message and
