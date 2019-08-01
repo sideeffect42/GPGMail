@@ -53,6 +53,8 @@
 
 #define MAIL_SELF ((ComposeBackEnd *)self)
 
+extern NSString * const kComposeViewControllerPreventAutoSave;
+
 const NSString *kComposeBackEndPreferredSecurityPropertiesKey = @"PreferredSecurityPropertiesKey";
 NSString * const kLibraryMimeBodyReturnCompleteBodyDataForComposeBackendKey = @"ReturnCompleteBodyDataForComposeBackEnd";
 
@@ -979,6 +981,21 @@ NSString * const kLibraryMimeBodyReturnCompleteBodyDataForComposeBackendKey = @"
     [[[NSThread currentThread] threadDictionary] setObject:@(YES) forKey:kLibraryMimeBodyReturnCompleteBodyDataForComposeBackendKey];
     [self MA_generateParsedMessageFromOriginalMessages];
     [[[NSThread currentThread] threadDictionary] removeObjectForKey:kLibraryMimeBodyReturnCompleteBodyDataForComposeBackendKey];
+}
+
+// Bug #1031: If a message fails to send, it might be replaced by its draft version prior
+//              to being sent at a later time.
+//
+// -[ComposeBackEnd setIsUndeliverable:] is called when sending a message
+// has failed. When this method is called, a new compose view controller has
+// been created, so the old prevent-auto-save-flag is no longer available
+// and has to be set again on the new compose view controller so auto-save is
+// prevented from running, until the user has made any changes.
+- (void)MASetIsUndeliverable:(BOOL)isUndeliverable {
+    if(isUndeliverable) {
+        [[MAIL_SELF delegate] setIvar:kComposeViewControllerPreventAutoSave value:@(YES)];
+    }
+    [self MASetIsUndeliverable:isUndeliverable];
 }
 
 @end

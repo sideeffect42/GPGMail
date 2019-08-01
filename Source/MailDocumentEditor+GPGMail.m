@@ -52,6 +52,8 @@
 static const NSString *kUnencryptedReplyToEncryptedMessage = @"unencryptedReplyToEncryptedMessage";
 extern const NSString *kComposeWindowControllerAllowWindowTearDown;
 
+NSString * const kComposeViewControllerPreventAutoSave = @"ComposeViewControllerPreventAutoSave";
+
 #define MAIL_SELF(object) ((ComposeViewController *)(object))
 
 @implementation MailDocumentEditor_GPGMail
@@ -316,11 +318,66 @@ extern const NSString *kComposeWindowControllerAllowWindowTearDown;
 	}
 }
 
-- (void)MASetDelegate:(id)delegate {
-	[self MASetDelegate:delegate];
-	// Store the delegate as associated object, otherwise Mail.app releases it to soon (when performing the send animation.)!
-	// Will be automatically released, when the ComposeViewController is released.
-	[self setIvar:@"GMDelegate" value:delegate];
+#pragma mark - Bug #1031
+
+// Bug #1031: If a message fails to send, it might be replaced by its draft version prior
+//              to being sent at a later time.
+//
+//
+// Fixes also: #933
+//
+// Once a user presses the send button, the final message is created and placed in the
+// "Outbox" folder. If for some reason sending the message fails however – most likely
+// due to a failure to connect to the SMTP server – this final message might have been
+// replaced by its latest draft version, since the auto-save timer is still running
+// and overwriting the message in "Outbox".
+// If the user then chooses to "Send later", the draft version of the message is sent out
+// at a later time and based on the status of "Encrypt drafts" that version might either
+// be encrypted to sender's public key *but not* the recipient's public key or sent in plain.
+//
+// In order to prevent Mail from replacing the final message, the auto-save method
+// is suspended until the user changes the message, which indicates that they chose
+// to continue editing the message instead of sending it later automatically.
+//
+// -[ComposeViewController hasUserMadeChanges] returns if the user made any changes to the message.
+//
+// -[ComposeViewController setIsBeingPreparedForSending:] is invoked from -[ComposeViewController sendMessageAfterChecking:] after the user presses the send button. Within
+// this method a flag is set, that auto-save is no longer allowed to operate.
+//
+// -[ComposeViewController saveDocument:] is invoked by the auto-save timer. It checks the flag
+// if it is ok to save a draft version which is determined by the fact if a message is about to be sent and `-[ComposeViewController hasUserMadeChanges]`
+//
+// -[ComposeViewController setUserHasMadChanges:] is invoked whenever the user modifies the message.
+// If the prevent-auto-save-flag is set, it is removed to make sure that subsequent
+// auto-saves are allowed to go through.
+
+- (void)MASetIsBeingPreparedForSending:(BOOL)isBeingPreparedForSending {
+    [self MASetIsBeingPreparedForSending:isBeingPreparedForSending];
+    // This method is always invoked on the main thread so it is save
+    // to set the flag here.
+    [self setIvar:kComposeViewControllerPreventAutoSave value:@(YES)];
 }
+
+- (void)MASetHasUserMadeChanges:(BOOL)hasUserMadeChanges {
+    if([self ivarExists:kComposeViewControllerPreventAutoSave]) {
+        [self removeIvar:kComposeViewControllerPreventAutoSave];
+    }
+    [self MASetHasUserMadeChanges:hasUserMadeChanges];
+}
+
+- (void)MASaveDocument:(id)document {
+    // If auto-save should be prevented, make sure that there are no user made changes.
+    //
+    // NOTE: If an error occurs during sending, a new compose view controller
+    // is created, so it appears that preventing saving a draft if `hasUserMadeChanges`
+    // is still false might be enough to keep the message to be sent from being replaced.
+    // But it's probably still safer to track the status via the prevent-auto-save-flag.
+    if([[self getIvar:kComposeViewControllerPreventAutoSave] boolValue] && ![MAIL_SELF(self) hasUserMadeChanges]) {
+        return;
+    }
+    [self MASaveDocument:document];
+}
+
+#pragma mark
 
 @end
