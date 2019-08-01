@@ -274,7 +274,7 @@ NSString * const kComposeViewControllerPreventAutoSave = @"ComposeViewController
 	[self MASendMessageAfterChecking:checklist];
 }
 
-- (BOOL)backEnd:(id)backEnd handleDeliveryError:(NSError *)error {
+- (BOOL)backEnd:(id __unused)backEnd handleDeliveryError:(NSError *)error {
 	
 	NSNumber *errorCode = ((NSDictionary *)error.userInfo)[@"GPGErrorCode"];
 	// If the pinentry dialog was cancelled, there's no need to show any error.
@@ -293,6 +293,9 @@ NSString * const kComposeViewControllerPreventAutoSave = @"ComposeViewController
     }
 	if([self backEnd:backEnd handleDeliveryError:error])
 		[self MABackEnd:backEnd didCancelMessageDeliveryForEncryptionError:error];
+    else {
+        [MAIL_SELF(self) show];
+    }
 }
 
 - (void)MABackEnd:(id)backEnd didCancelMessageDeliveryForError:(NSError *)error {
@@ -302,20 +305,42 @@ NSString * const kComposeViewControllerPreventAutoSave = @"ComposeViewController
     }
 	if([self backEnd:backEnd handleDeliveryError:error])
 		[self MABackEnd:backEnd didCancelMessageDeliveryForEncryptionError:error];
+    else {
+        [MAIL_SELF(self) show];
+    }
 }
 
 - (void)MABackEndDidAppendMessageToOutbox:(id)backEnd result:(long long)result {
-	[self MABackEndDidAppendMessageToOutbox:backEnd result:result];
-	// If result == 3 the message was successfully sent, and now it's time to really dismiss the tab,
-	// in order to free the resources, Mail wanted to free as soon as it started the send animation.
-	// Unfortunately, if let it do that at the point of the send animation, there's no way we could
-	// display an error.
-	if(result == 3) {
-        // TODO: Fix for HighSierra. Seems to crash! Timing bug!
-//        [self setIvar:kComposeWindowControllerAllowWindowTearDown value:@(YES)];
-//        [(ComposeWindowController *)[self delegate] composeViewControllerDidSend:self];
-//        [self removeIvar:kComposeWindowControllerAllowWindowTearDown];
-	}
+    [self MABackEndDidAppendMessageToOutbox:backEnd result:result];
+
+    // A result code other than 3 signals an error.
+    if(result != 3) {
+        return;
+    }
+
+    // Bug #998: Canceling a pinentry request might result in losing a message
+    //
+    // As described in the `-[ComposeWindowController composeViewControllerDidSend:` method
+    // the tear down of the compose view controller might have been postponed, to properly recover
+    // from errors that occur during sending. At this point the compose view controller
+    // can savely be torn down.
+    // `-[ComposeViewController forceClose]` needs to be called on the main thread.
+    // This is already guaranteed, since this method is always called on the main thread.
+    [MAIL_SELF(self) forceClose];
+}
+
+// Bug #998: Canceling a pinentry request might result in losing a message
+//
+// See `-[ComposeWindowController composeViewControllerDidSend:]` for further details.
+//
+// The tear down of the compose view controller is to be postponed, if the message
+// is either being encrypted or signed.
+//
+// Apple's S/MIME implementation suffers from the same bug as well,
+// this workaround will fix it for S/MIME as well.
+- (BOOL)GMShouldPostponeTearDown {
+    GMComposeMessagePreferredSecurityProperties *securityProperties = ((ComposeBackEnd_GPGMail *)[MAIL_SELF(self) backEnd]).preferredSecurityProperties;
+    return securityProperties.shouldEncryptMessage || securityProperties.shouldSignMessage;
 }
 
 #pragma mark - Bug #1031

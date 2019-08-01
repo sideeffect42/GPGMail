@@ -40,6 +40,8 @@
 #import "ComposeWindow.h"
 #import "GPGMailBundle.h"
 
+#import "MailDocumentEditor+GPGMail.h"
+
 #define mailself ((ComposeWindowController *)self)
 
 const NSString *kComposeWindowControllerAllowWindowTearDown = @"ComposeWindowControllerAllowWindowTearDown";
@@ -94,6 +96,41 @@ extern const NSString *kFullScreenWindowControllerCloseModalWindowNotYet;
 	return item;
 }
 
+#pragma mark Allow restoration of Compose Window on send failures
+
+- (void)MAComposeViewControllerDidSend:(id __unused)composeViewController {
+    if(![[GPGMailBundle sharedInstance] hasActiveContractOrActiveTrial]) {
+        [self MAComposeViewControllerDidSend:composeViewController];
+        return;
+    }
+    // Bug #998: Canceling a pinentry request might result in losing a message
+    //
+    // Fixes also: #814, #716, #867
+    //
+    // As soon as the user presses the send button, `-[ComposeWindowController composeViewControllerDidSend:]`
+    // is called in order to tear down the compose view controller.
+    // Internally `-[ComposeWindowController composeViewControllerDidSend:]` calls `-[ComposeViewController forceClose]`
+    // for the tear down.
+    //
+    // This however leads to the problem, that if an error occurs during the send operation,
+    // the compose view controller cannot properly recover the message being sent, since it is already
+    // partially torn down. Among other things, auto-save will no longer work, the window can no longer
+    // be properly closed, etc.
+    //
+    // To avoid this dirty state, GPG Mail tries to postpone the tear down until *after* the
+    // send operation is completed and `-[ComposeViewController backEndDidAppendMessageToOutbox:result:]`
+    // is called with the `result` variable indicating whether or not an error has occurred.
+    //
+    // If the result is 3 (successfully sent), `-[ComposeViewController forceClose]` is invoked by GPG Mail
+    // from `-[ComposeViewController backEndDidAppendMessageToOutbox:result:]`
+
+    // Check if the tear down should be postponed. If not, immediately call the original implementation
+    // in order to avoid breaking more than necessary.
+    if(![(MailDocumentEditor_GPGMail *)composeViewController GMShouldPostponeTearDown]) {
+        [self MAComposeViewControllerDidSend:composeViewController];
+    }
+    return;
+}
 
 @end
 
