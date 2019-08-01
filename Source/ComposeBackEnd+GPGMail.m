@@ -1046,13 +1046,6 @@ NSString * const kLibraryMimeBodyReturnCompleteBodyDataForComposeBackendKey = @"
     return draftIsContinued;
 }
 
-- (BOOL)MA_saveThreadShouldCancel {
-	if ([[self getIvar:@"cancelSaving"] boolValue]) {
-		[self setIvar:@"cancelSaving" value:(id)kCFBooleanFalse];
-		return YES;
-	}
-	return [self MA_saveThreadShouldCancel];
-}
 
 - (GMComposeMessagePreferredSecurityProperties *)preferredSecurityProperties {
     GMComposeMessagePreferredSecurityProperties *securityProperties = nil;

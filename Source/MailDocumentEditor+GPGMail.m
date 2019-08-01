@@ -272,17 +272,6 @@ extern const NSString *kComposeWindowControllerAllowWindowTearDown;
 	[self MASendMessageAfterChecking:checklist];
 }
 
-- (void)restoreComposerView {
-	ComposeBackEnd *backEnd = (MAIL_SELF(self)).backEnd;
-	[backEnd setIsDeliveringMessage:NO];
-	[(ComposeWindowController_GPGMail *)[self delegate] restorePositionBeforeAnimation];
-	
-	ComposeWindowController *windowController = [self delegate];
-	ComposeViewController *viewController = (id)[windowController contentViewController];
-	HeadersEditor *editor = [viewController valueForKey:@"headersEditor"];
-	[editor setValue:viewController forKey:@"composeViewController"];
-}
-
 - (BOOL)backEnd:(id)backEnd handleDeliveryError:(NSError *)error {
 	
 	NSNumber *errorCode = ((NSDictionary *)error.userInfo)[@"GPGErrorCode"];
@@ -302,9 +291,6 @@ extern const NSString *kComposeWindowControllerAllowWindowTearDown;
     }
 	if([self backEnd:backEnd handleDeliveryError:error])
 		[self MABackEnd:backEnd didCancelMessageDeliveryForEncryptionError:error];
-	
-//    if([GPGMailBundle isElCapitan])
-//        [self restoreComposerView];
 }
 
 - (void)MABackEnd:(id)backEnd didCancelMessageDeliveryForError:(NSError *)error {
@@ -314,9 +300,6 @@ extern const NSString *kComposeWindowControllerAllowWindowTearDown;
     }
 	if([self backEnd:backEnd handleDeliveryError:error])
 		[self MABackEnd:backEnd didCancelMessageDeliveryForEncryptionError:error];
-
-//    if([GPGMailBundle isElCapitan])
-//        [self restoreComposerView];
 }
 
 - (void)MABackEndDidAppendMessageToOutbox:(id)backEnd result:(long long)result {
