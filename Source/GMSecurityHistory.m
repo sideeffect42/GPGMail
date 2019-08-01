@@ -64,10 +64,10 @@
 	
 	GMSecurityOptions *defaultSecurityOptions = [self securityOptionsFromDefaults];
 	
-	BOOL canPGPSign = (signFlags & GPGMAIL_SIGN_FLAG_OPENPGP);
-    BOOL canPGPEncrypt = (encryptFlags & GPGMAIL_ENCRYPT_FLAG_OPENPGP);
-    BOOL canSMIMESign = (signFlags & GPGMAIL_SIGN_FLAG_SMIME);
-    BOOL canSMIMEEncrypt = (encryptFlags & GPGMAIL_ENCRYPT_FLAG_SMIME);
+	BOOL canPGPSign = (signFlags & GPGMAIL_SIGN_FLAG_OPENPGP) == GPGMAIL_SIGN_FLAG_OPENPGP;
+    BOOL canPGPEncrypt = (encryptFlags & GPGMAIL_ENCRYPT_FLAG_OPENPGP)  == GPGMAIL_ENCRYPT_FLAG_OPENPGP;
+    BOOL canSMIMESign = (signFlags & GPGMAIL_SIGN_FLAG_SMIME) == GPGMAIL_SIGN_FLAG_SMIME;
+    BOOL canSMIMEEncrypt = (encryptFlags & GPGMAIL_ENCRYPT_FLAG_SMIME) == GPGMAIL_ENCRYPT_FLAG_SMIME;
     BOOL SMIMEKeyAvailable = canSMIMESign || canSMIMEEncrypt;
     BOOL PGPKeyAvailable = canPGPSign || canPGPEncrypt;
 	
@@ -266,10 +266,10 @@
     // that the returned security method remains OPENPGP_SECURITY_METHOD_UNKNOWN.
     // To fix that, securityMethod is initially set to the default.
     GPGMAIL_SECURITY_METHOD securityMethod = defaultSecurityOptions.securityMethod;
-    BOOL canPGPSign = (signFlags & GPGMAIL_SIGN_FLAG_OPENPGP);
-    BOOL canPGPEncrypt = (encryptFlags & GPGMAIL_ENCRYPT_FLAG_OPENPGP);
-    BOOL canSMIMESign = (signFlags & GPGMAIL_SIGN_FLAG_SMIME);
-    BOOL canSMIMEEncrypt = (encryptFlags & GPGMAIL_ENCRYPT_FLAG_SMIME);
+    BOOL canPGPSign = (signFlags & GPGMAIL_SIGN_FLAG_OPENPGP) == GPGMAIL_SIGN_FLAG_OPENPGP;
+    BOOL canPGPEncrypt = (encryptFlags & GPGMAIL_ENCRYPT_FLAG_OPENPGP) == GPGMAIL_ENCRYPT_FLAG_OPENPGP;
+    BOOL canSMIMESign = (signFlags & GPGMAIL_SIGN_FLAG_SMIME) == GPGMAIL_SIGN_FLAG_SMIME;
+    BOOL canSMIMEEncrypt = (encryptFlags & GPGMAIL_ENCRYPT_FLAG_SMIME) == GPGMAIL_ENCRYPT_FLAG_SMIME;
     BOOL canSign = NO;
     BOOL canEncrypt = NO;
     BOOL SMIMEKeyAvailable = canSMIMESign || canSMIMEEncrypt;
