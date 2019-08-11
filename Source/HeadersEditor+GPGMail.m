@@ -212,10 +212,7 @@ const NSString *kHeadersEditorFromControlParentItemKey = @"HeadersEditorFromCont
     }
 	// New Sierra way to do this.
     ComposeBackEnd *backEnd = [[mailself composeViewController] backEnd];
-    
-    // Implementation of the block <arg1> passed to updateSMIMEStatus:
-    // TODO: As Apple does, we should move this code to -[HeadersEditor _updateSecurityControls]
-    // and pass it into updateSMIMEStatus. Choose the version that is more readable/easier to update.
+
     __weak HeadersEditor_GPGMail *weakSelf = self;
     
     [backEnd updateSMIMEStatus:^{
@@ -279,25 +276,6 @@ const NSString *kHeadersEditorFromControlParentItemKey = @"HeadersEditorFromCont
     }];
     
     return;
-    
-    // Old way we did it by calling Mail's implementation.
-    
-    // Do nothing, if documentEditor is no longer set.
-	// Might already have been released, or some such...
-	// Belongs to: #624.
-    // MailApp seems to call S in Yosemite to cancel previous updates.
-    // That's highly interesting!.
-	// DocumentEditor no longer exists in El Capitan. Seems to have been replaced by ComposeViewController.
-	if([GPGMailBundle isElCapitan]) {
-		if([self respondsToSelector:@selector(composeViewController)] && ![self composeViewController])
-			return;
-	}
-	else {
-		if(![self valueForKey:@"_documentEditor"])
-			return;
-	}
-	
-	[self MAUpdateSecurityControls];
 }
 
 - (void)MASecurityControlChanged:(NSControl *)securityControl {
@@ -878,24 +856,6 @@ const NSString *kHeadersEditorFromControlParentItemKey = @"HeadersEditorFromCont
     return toolTip;
 }
 
-// TODO: Re-Implement for sierra.
-//- (void)MA_updateEncryptButtonTooltip {
-//    ComposeBackEnd_GPGMail *backEnd = [GPGMailBundle backEndFromObject:self];
-//    
-//    GPGMAIL_SECURITY_METHOD securityMethod = backEnd.guessedSecurityMethod;
-//    if(backEnd.securityMethod)
-//        securityMethod = backEnd.securityMethod;
-//    
-//    if(securityMethod == GPGMAIL_SECURITY_METHOD_OPENPGP) {
-//        NSString *encryptToolTip = [self encryptButtonToolTip];
-//        GMSecurityControl *encryptControl = [self valueForKey:@"_encryptButton"];
-//        [((NSSegmentedControl *)encryptControl) setToolTip:encryptToolTip];
-//    }
-//    else {
-//        [self MA_updateEncryptButtonTooltip];
-//    }
-//}
-
 - (void)MADealloc {
     @try {
 //        [(MailNotificationCenter *)[NSClassFromString(@"MailNotificationCenter") defaultCenter] removeObserver:self];
@@ -909,139 +869,3 @@ const NSString *kHeadersEditorFromControlParentItemKey = @"HeadersEditorFromCont
 @end
 
 #undef mailself
-
-/* ORIGINAL SOURCE OF MAIL.APP FOR LEARING. */
-
-//- (void)configureButtonsAndPopUps {
-//    WebViewEditor *webViewEditor = [[self valueForKey:@"_documentEditor"] webViewEditor];
-//	[webViewEditor updateIgnoredWordsForHeader:NO];
-//	[webViewEditor updateSecurityControls];
-//	[webViewEditor updatePriorityPopUpMakeActive:YES];
-//
-//	ComposeBackEnd *backEnd = [self _valueForKey:@"_documentEditor"];
-//	long long messagePriority = [backEnd displayableMessagePriority];
-//
-//	if(messagePriority != 3) {
-//		if([[self valueForKey:@"_priorityPopup"] isHiddenOrHasHiddenAncestor])
-//		   [[self valueForKey:@"_composeHeaderView"] setPriorityFieldVisible:YES];
-//	}
-//
-//	[self _updateFromAndSignatureControls];
-//}
-//
-//- (void)changeHeaderField:(id)headerField {
-//	NSString *headerKey = [self _headerKeyForView:headerField];
-//	if(!headerKey)
-//		return;
-//
-//	if([self valueForKey:@"_subjectField"] != headerField) {
-//		NSString *attributedStringValue = [headerField attributedStringValue];
-//		NSString *unatomicAddress = [attributedStringValue unatomicAddresses];
-//		[[[self valueForKey:@"_documentEditor"] backEnd] setAddressList:unatomicAddress forHeader:headerKey];
-//
-//		if([self valueForKey:@"_toField"] != headerField && [self valueForKey:@"_ccField"] != headerField) {
-//			if([self valueForKey:@"_bccField"] == headerField) {
-//				[[self valueForKey:@"_documentEditor"] updateSendButtonStateInToolbar];
-//				[self updateSecurityControls];
-//				[self updatePresenceButtonState];
-//			}
-//			else
-//				return;
-//		}
-//		else {
-//			[[self valueForKey:@"_documentEditor"] updateSendButtonStateInToolbar];
-//			[self updateSecurityControls];
-//			[self updatePresenceButtonState];
-//		}
-//	}
-//}
-//
-//- (void)changeFromHeader:(id)header {
-//	ComposeBackEnd *backEnd = [[self valueForKey:@"_documentEditor"] backEnd]; // r15
-//	NSString *title = [header titleOfSelectedItem];
-//	if(title) {
-//		NSString *sender = [backEnd sender];
-//		[sender retain];
-//		[backEnd setSender:title];
-//		[self updateCcOrBccMyselfFieldWithSender:title oldSender:sender];
-//		[sender release];
-//		[self updateSecurityControls];
-//		[self updateSignatureControlOverridingExistingSignature:YES];
-//		[[self valueForKey:@"_documentEditor"] updateAttachmentStatus];
-//	}
-//	// And some more stuff which shall not be our concern currently.
-//
-//}
-//
-//- (void)updateSecurityControls {
-//	ComposeBackEnd *backEnd = [[self valueForKey:@"_documentEditor"] backEnd];
-//	NSArray *recipients = [backEnd allRecipients];
-//	NSString *sender = [backEnd sender];
-//    NSInvocation *invocation = [NSInvocation invocationWithSelector:@selector(_updateSecurityStateInBackgroundForRecipients:sender:) target:self object1:recipients	object2:sender];
-//
-//	[WorkerThread addInvocationToQueue:invocation];
-//}
-//
-//- (void)_updateSecurityStateInBackgroundForRecipients:(id)recipients sender:(id)sender {
-//	BOOL canSignFromAnyAccount = [self canSignFromAnyAccount];
-//
-//	BOOL canSignFromAddress = NO;
-//	BOOL canEncryptFromAddress = NO;
-//	if(canSignFromAnyAccount) {
-//		ComposeBackEnd *backEnd = [[self valueForKey:@"_documentEditor"] backEnd];
-//		canSignFromAddress = [backEnd canSignFromAddress:sender];
-//		if(canSignFromAddress) {
-//			canEncryptFromAddress = [backEnd canEncryptForRecipients:recipients sender:sender];
-//		}
-//	}
-//	[[NSOperationQueue mainQueue] addOperationWithBlock:^{
-//		[[self valueForKey:@"_composeHeaderView"] setSecurityFieldEnabled:canSignFromAddress];
-//		if(canSignFromAddress && canEncryptFromAddress) {
-//			if(![[self valueForKey:@"_composeHeaderView"] securityFieldVisible]) {
-//				[[self valueForKey:@"_signButton"] setImage:@"" forSegment:0];
-//				[[self valueForKey:@"_encryptButton"] setImage:@"" forSegment:0];
-//				[[self valueForKey:@"_signButton"] setEnabled:NO];
-//				[[self valueForKey:@"_encryptButton"] setEnabled:NO];
-//
-//				[[[self valueForKey:@"_documentEditor"] backEnd] setSignIfPossible:NO];
-//			}
-//			else {
-//				BOOL sign = (BOOL)[NSApp signOutgoingMessages]; // r15
-//				BOOL encrypt = (BOOL)[NSApp encryptOutgoingMessages];
-//
-//				NSImage *signImage = nil; // some image.
-//				NSImage *encryptImage = nil; // some other image.
-//				if(sign) {
-//					signImage = nil; // different image
-//				}
-//
-//				[[self valueForKey:@"_signButton"] setImage:signImage forSegment:0];
-//				[[self valueForKey:@"_signButton"] setEnabled:YES];
-//				[[[self valueForKey:@"_documentEditor"] backEnd] setSignIfPossible:sign];
-//
-//				if(!canEncryptFromAddress) {
-//					[[self valueForKey:@"_encryptButton"] setEnabled:canEncryptFromAddress];
-//					[[self valueForKey:@"_encryptButton"] setImage:encryptImage forSegment:0];
-//
-//					[[[self valueForKey:@"_documentEditor"] backEnd] setEncryptIfPossible:NO];
-//				}
-//				else {
-//					[[self valueForKey:@"_encryptButton"] setEnabled:YES];
-//
-//					NSImage *encryptImage = nil; // some image.
-//					if(encrypt)
-//						encryptImage = nil; // some other image.
-//					[[self valueForKey:@"_encryptButton"] setImage:encryptImage forSegment:0];
-//					[[[self valueForKey:@"_documentEditor"] backEnd] setEncryptIfPossible:encrypt];
-//
-//					[self _updateSignButtonTooltip];
-//					[self _updateEncryptButtonTooltip];
-//
-//					[[self valueForKey:@"_documentEditor"] encryptionStatusDidChange];
-//				}
-//			}
-//		}
-//	}];
-//}
-
-
