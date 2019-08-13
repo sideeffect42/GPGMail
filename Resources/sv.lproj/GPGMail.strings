@@ -264,32 +264,32 @@ ACCESSIBILITY_SIGN_OFF_IMAGE = "Signera inte";
 
 
 /* Support Plan */
-"SUPPORT_PLAN_ACTIVATION_SUCCESS_TITLE" = "Support Plan Activated";
-"SUPPORT_PLAN_ACTIVATION_SUCCESS_MESSAGE" = "Thank you for your support!\n\nWe hope you enjoy using GPG Mail. Should you have any questions, don't hesitate to contact us via \"Report Problem\" in Mail › Preferences › GPG Mail";
-"SUPPORT_PLAN_ACTIVATION_FAILED_TITLE" = "Support Plan Activation Failed";
-"SUPPORT_PLAN_ACTIVATION_FAILED_INPUT_INVALID" = "The entered activation code is invalid. Please check the entered information and try again.";
+"SUPPORT_PLAN_ACTIVATION_SUCCESS_TITLE" = "Supportplan aktiverad";
+"SUPPORT_PLAN_ACTIVATION_SUCCESS_MESSAGE" = "Tack för ditt stöd!\n\nVi hoppas att du kommer att tycka om GPG Mail. Om du skulle ha några frågor, tveka inte att kontakta oss via \"Rapportera problem\" i Mail › Inställningar › GPG Mail";
+"SUPPORT_PLAN_ACTIVATION_FAILED_TITLE" = "Aktivering av supportplan misslyckades";
+"SUPPORT_PLAN_ACTIVATION_FAILED_INPUT_INVALID" = "Den angivna aktiveringskoden är ogiltig. Kontrollera den angivna informationen och försök igen.";
 "SUPPORT_PLAN_ACTIVATION_FAILED_CONNECTTION_ERROR" = "We were unable to connect to the paddle.com API to verify your activation code.\nIf you are using any macOS firewall product (buil-in firewall, Little Snitch, etc.), please allow connections to paddle.com for the activation to complete. You can block any connections again once the activation is completed.\n\nPlease contact us at business@gpgtools.org if the problem persists.";
-"SUPPORT_PLAN_ACTIVATION_FAILED_CODE_INVALID" = "The entered activation code is invalid.\nPlease contact us at business@gpgtools.org if you are sure that you have entered your code correctly.";
+"SUPPORT_PLAN_ACTIVATION_FAILED_CODE_INVALID" = "Den angivna aktiveringskoden är ogiltig.\nKontakta oss på business@gpgtools.org om du är säker på att du angivit rätt kod.";
 "SUPPORT_PLAN_ACTIVATION_FAILED_TOO_MANY_ACTIVATIONS" = "We are very sorry to inform you that you have exceeded the allowed number of activations.\nPlease contact us at business@gpgtools.org, if you believe that you should still have activations left.";
-"SUPPORT_PLAN_ACTIVATION_FAILED_GENERAL_ERROR" = "Unfortunately an unknown error has occurred. Please retry later or use 'System Preferences › GPG Suite › Send Report' to contact us";
+"SUPPORT_PLAN_ACTIVATION_FAILED_GENERAL_ERROR" = "Tyvärr har ett okänt fel inträffat. Försök igen senare eller använd 'Systeminställningar › GPG Suite › Skicka rapport' för att kontakta oss";
 "SUPPORT_PLAN_HEADER_EXPIRED" = "Your 30-day-trial of GPG Mail has expired. Encrypting, signing and verifying messages will stop to work. Decrypting however will always continue to work.\nPurchase GPG Mail Support Plan to continue with full functionality.";
-"SUPPORT_PLAN_HEADER_TRIAL" = "You can test GPG Mail free for %@ days.\nSecure your emails now!";
-"SUPPORT_PLAN_HEADER_TRIAL_MORE" = "You can test GPG Mail free for %@ more days.\nSecure your emails now!";
-"SUPPORT_PLAN_DETAILS_MESSAGE" = "If you have already purchased a support plan, activate it now and enjoy GPG Mail!";
-"SUPPORT_PLAN_DETAILS_MESSAGE_HYPERLINK_PART" = "support plan";
-"SUPPORT_PLAN_BUY" = "Buy Now";
-"SUPPORT_PLAN_CLOSE" = "Continue";
-"SUPPORT_PLAN_CONTINUE_TRIAL"= "Continue Trial";
-"SUPPORT_PLAN_START_TRIAL" = "Start Trial";
-"SUPPORT_PLAN_BUY" = "Buy Now";
-"SUPPORT_PLAN_ACTIVATE" = "Activate";
-"SUPPORT_PLAN_TRIAL_EXPIRED_TITLE" = "GPG Mail Trial Expired";
-"SUPPORT_PLAN_TRIAL_EXPIRED_MESSAGE" = "Without an active GPG Mail Support Plan you will still be able to read any of your encrypted emails. However, you will no longer be able to sign, encrypt or verify emails.";
-"SUPPORT_PLAN_HEADER_WELCOME" = "Welcome to GPG Mail";
-"SUPPORT_PLAN_EMAIL_LABEL" = "Email";
-"SUPPORT_PLAN_LICENSE_LABEL" = "Activation Code";
-"SUPPORT_PLAN_GRAY_INFO" = "Your activation code can be found in the email you receive after completing your purchase.";
-"SUPPORT_PLAN_PROGRESS_LABEL" = "Activating your copy of GPG Mail";
+"SUPPORT_PLAN_HEADER_TRIAL" = "Du kan testa GPG Mail gratis i %@ dagar.\nSkydda din e-post nu!";
+"SUPPORT_PLAN_HEADER_TRIAL_MORE" = "Du kan testa GPG Mail gratis i ytterligare %@ dagar.\nSkydda din e-post nu!";
+"SUPPORT_PLAN_DETAILS_MESSAGE" = "Om du redan har köpt en supportplan, aktivera den nu och njut av GPG Mail!";
+"SUPPORT_PLAN_DETAILS_MESSAGE_HYPERLINK_PART" = "supportplan";
+"SUPPORT_PLAN_BUY" = "Köp nu";
+"SUPPORT_PLAN_CLOSE" = "Fortsätt";
+"SUPPORT_PLAN_CONTINUE_TRIAL"= "Fortsätt testperiod";
+"SUPPORT_PLAN_START_TRIAL" = "Starta testperiod";
+"SUPPORT_PLAN_BUY" = "Köp nu";
+"SUPPORT_PLAN_ACTIVATE" = "Aktivera";
+"SUPPORT_PLAN_TRIAL_EXPIRED_TITLE" = "Testperioden för GPG Mail har löpt ut";
+"SUPPORT_PLAN_TRIAL_EXPIRED_MESSAGE" = "Utan en aktiv supportplan för GPG Mail kan du fortfarande läsa all din krypterade e-post. Du kan dock inte signera, kryptera eller verifiera e-postmeddelanden.";
+"SUPPORT_PLAN_HEADER_WELCOME" = "Välkommen till GPG Mail";
+"SUPPORT_PLAN_EMAIL_LABEL" = "E-post";
+"SUPPORT_PLAN_LICENSE_LABEL" = "Aktiveringskod";
+"SUPPORT_PLAN_GRAY_INFO" = "Din aktiveringskod kan hittas i e-postmeddelandet som du får efter att du slutfört ditt köp.";
+"SUPPORT_PLAN_PROGRESS_LABEL" = "Aktiverar ditt exemplar av GPG Mail";
 
 
 

@@ -264,32 +264,32 @@ ACCESSIBILITY_SIGN_OFF_IMAGE = "Jangan tandatangani";
 
 
 /* Support Plan */
-"SUPPORT_PLAN_ACTIVATION_SUCCESS_TITLE" = "Support Plan Activated";
-"SUPPORT_PLAN_ACTIVATION_SUCCESS_MESSAGE" = "Thank you for your support!\n\nWe hope you enjoy using GPG Mail. Should you have any questions, don't hesitate to contact us via \"Report Problem\" in Mail › Preferences › GPG Mail";
-"SUPPORT_PLAN_ACTIVATION_FAILED_TITLE" = "Support Plan Activation Failed";
-"SUPPORT_PLAN_ACTIVATION_FAILED_INPUT_INVALID" = "The entered activation code is invalid. Please check the entered information and try again.";
-"SUPPORT_PLAN_ACTIVATION_FAILED_CONNECTTION_ERROR" = "We were unable to connect to the paddle.com API to verify your activation code.\nIf you are using any macOS firewall product (buil-in firewall, Little Snitch, etc.), please allow connections to paddle.com for the activation to complete. You can block any connections again once the activation is completed.\n\nPlease contact us at business@gpgtools.org if the problem persists.";
-"SUPPORT_PLAN_ACTIVATION_FAILED_CODE_INVALID" = "The entered activation code is invalid.\nPlease contact us at business@gpgtools.org if you are sure that you have entered your code correctly.";
-"SUPPORT_PLAN_ACTIVATION_FAILED_TOO_MANY_ACTIVATIONS" = "We are very sorry to inform you that you have exceeded the allowed number of activations.\nPlease contact us at business@gpgtools.org, if you believe that you should still have activations left.";
-"SUPPORT_PLAN_ACTIVATION_FAILED_GENERAL_ERROR" = "Unfortunately an unknown error has occurred. Please retry later or use 'System Preferences › GPG Suite › Send Report' to contact us";
-"SUPPORT_PLAN_HEADER_EXPIRED" = "Your 30-day-trial of GPG Mail has expired. Encrypting, signing and verifying messages will stop to work. Decrypting however will always continue to work.\nPurchase GPG Mail Support Plan to continue with full functionality.";
-"SUPPORT_PLAN_HEADER_TRIAL" = "You can test GPG Mail free for %@ days.\nSecure your emails now!";
-"SUPPORT_PLAN_HEADER_TRIAL_MORE" = "You can test GPG Mail free for %@ more days.\nSecure your emails now!";
-"SUPPORT_PLAN_DETAILS_MESSAGE" = "If you have already purchased a support plan, activate it now and enjoy GPG Mail!";
-"SUPPORT_PLAN_DETAILS_MESSAGE_HYPERLINK_PART" = "support plan";
-"SUPPORT_PLAN_BUY" = "Buy Now";
-"SUPPORT_PLAN_CLOSE" = "Continue";
-"SUPPORT_PLAN_CONTINUE_TRIAL"= "Continue Trial";
-"SUPPORT_PLAN_START_TRIAL" = "Start Trial";
-"SUPPORT_PLAN_BUY" = "Buy Now";
-"SUPPORT_PLAN_ACTIVATE" = "Activate";
-"SUPPORT_PLAN_TRIAL_EXPIRED_TITLE" = "GPG Mail Trial Expired";
-"SUPPORT_PLAN_TRIAL_EXPIRED_MESSAGE" = "Without an active GPG Mail Support Plan you will still be able to read any of your encrypted emails. However, you will no longer be able to sign, encrypt or verify emails.";
-"SUPPORT_PLAN_HEADER_WELCOME" = "Welcome to GPG Mail";
-"SUPPORT_PLAN_EMAIL_LABEL" = "Email";
-"SUPPORT_PLAN_LICENSE_LABEL" = "Activation Code";
-"SUPPORT_PLAN_GRAY_INFO" = "Your activation code can be found in the email you receive after completing your purchase.";
-"SUPPORT_PLAN_PROGRESS_LABEL" = "Activating your copy of GPG Mail";
+"SUPPORT_PLAN_ACTIVATION_SUCCESS_TITLE" = "Langganan Dukungan Diaktifkan";
+"SUPPORT_PLAN_ACTIVATION_SUCCESS_MESSAGE" = "Terima kasih atas dukungan Anda\n\nKami berharap Anda menikmati memakai GPG Mail. Bila Anda punya pertanyaan, jangan ragu-ragu menghubungi kami melalui \"Laporkan Masalah\" dalam Surat > Preferensi > GPG Mail";
+"SUPPORT_PLAN_ACTIVATION_FAILED_TITLE" = "Aktivasi Langganan Dukungan Gagal";
+"SUPPORT_PLAN_ACTIVATION_FAILED_INPUT_INVALID" = "Kode aktivasi yang dimasukkan tidak valid. Harap periksa informasi yang dimasukkan dan coba lagi.";
+"SUPPORT_PLAN_ACTIVATION_FAILED_CONNECTTION_ERROR" = "Kami tidak bisa menyambung ke API paddle.com untuk memverifikasi kode aktivasi Anda.\nBila Anda memakai sebarang produk firewall macOS (firewall bawaan, Little Snitch, dsb.), harap izinkan koneksi ke paddle.com agar aktivasi bisa diselesaikan. Anda bisa memblokir sebarang koneksi lagi setelah aktivasi selesai.\n\nHarap hubungi kami pada business@gpgtools.org bila masalah tetap muncul.";
+"SUPPORT_PLAN_ACTIVATION_FAILED_CODE_INVALID" = "Kode aktivasi yang dimasukkan tidak valid.\nHarap hubungi kami di business@gpgtools.org bila Anda yakin bahwa Anda telah memasukkan kode Anda secara benar.";
+"SUPPORT_PLAN_ACTIVATION_FAILED_TOO_MANY_ACTIVATIONS" = "Kami menyesal mesti memberitahu Anda bahwa Anda telah melampaui cacah aktivasi yang diizinkan.\nHarap hubungi kami pada business@gpgtools.org, bila Anda percaya bahwa Anda mestinya masih punya sisa aktivasi.";
+"SUPPORT_PLAN_ACTIVATION_FAILED_GENERAL_ERROR" = "Sayang sekali telah terjadi kesalahan yang tidak dikenal. Harap coba lagi nanti atau pakai 'Preferensi Sistem > Keluarga GPG > Kirim Laporan' untuk menghubungi kami";
+"SUPPORT_PLAN_HEADER_EXPIRED" = "Uji pakai 30 hari GPG Mail Anda telah berakhir. Mengenkripsi, menandatangani, dan memverifikasi pesan tidak akan bisa dilakukan lagi. Namun mendekripsi akan selalu bisa dipakai.\nBelilah Rencana Dukungan GPG Mail untuk melanjutkan dengan fungsionalitas penuh.";
+"SUPPORT_PLAN_HEADER_TRIAL" = "Anda dapat mencoba GPG Mail secara bebas selama %@hari.\nAmankan surel Anda sekarang!";
+"SUPPORT_PLAN_HEADER_TRIAL_MORE" = "Anda bebas mencoba GPG Mail selama %@ hari lagi.\nAmankan surel Anda sekarang!";
+"SUPPORT_PLAN_DETAILS_MESSAGE" = "Bila Anda telah membeli langganan dukungan, aktifkan itu sekarang dan nikmati GPG Mail!";
+"SUPPORT_PLAN_DETAILS_MESSAGE_HYPERLINK_PART" = "langganan dukungan";
+"SUPPORT_PLAN_BUY" = "Beli Sekarang";
+"SUPPORT_PLAN_CLOSE" = "Lanjutkan";
+"SUPPORT_PLAN_CONTINUE_TRIAL"= "Lanjutkan Uji Pakai";
+"SUPPORT_PLAN_START_TRIAL" = "Mulai Uji Pakai";
+"SUPPORT_PLAN_BUY" = "Beli Sekarang";
+"SUPPORT_PLAN_ACTIVATE" = "Aktifkan";
+"SUPPORT_PLAN_TRIAL_EXPIRED_TITLE" = "Uji Pakai GPG Mail Telah Berakhir";
+"SUPPORT_PLAN_TRIAL_EXPIRED_MESSAGE" = "Tanpa Langganan Dukungan GPG Mail Anda masih akan bisa membaca sebarang surel Anda yang terenkripsi. Namun, Anda tidak bisa lagi menandatangani, mengenkripsi, atau memverifikasi surel.";
+"SUPPORT_PLAN_HEADER_WELCOME" = "Selamat Datang ke GPG Mail";
+"SUPPORT_PLAN_EMAIL_LABEL" = "Surel";
+"SUPPORT_PLAN_LICENSE_LABEL" = "Kode Aktivasi";
+"SUPPORT_PLAN_GRAY_INFO" = "Kode aktivasi Anda dapat ditemukan dalam surel yang Anda terima setelah menyelesaikan pembelian.";
+"SUPPORT_PLAN_PROGRESS_LABEL" = "Mengaktifkan salinan GPG Mail Anda";
 
 
 
