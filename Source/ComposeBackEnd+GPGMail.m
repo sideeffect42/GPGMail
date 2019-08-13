@@ -419,8 +419,15 @@ NSString * const kComposeBackEndPreferredSecurityPropertiesAccessLockKey = @"Com
     // 2 = Reply to all.
     // 3 = Forward.
     // 4 = Restored Reply window.
+    // 12 = Restored window after send error.
+    // Bug #1043: Security button states not properly restored
+    //            after message fails to send
+    //
+    // A restored reply after a send error uses the `type` 12. So
+    // in order to properly restore the security button states
+    // 12 is added to the list of allowed values for type for a reply.
     NSInteger type = [(ComposeBackEnd *)self type];
-    return (type == 1 || type == 2 || type == 4) && ![self draftIsContinued];
+    return (type == 1 || type == 2 || type == 4 || type == 12) && ![self draftIsContinued];
 }
 
 - (BOOL)messageIsBeingForwarded {
