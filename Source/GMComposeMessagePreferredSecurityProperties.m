@@ -283,8 +283,14 @@
 // only, since Mail tends to pass the address in either format at times.
 - (void)cacheEncryptionKey:(id)key forAddress:(NSString *)address {
     key = key == nil ? [NSNull null] : key;
-    [self.encryptionKeys setObject:key forKey:address];
-    [self.encryptionKeys setObject:key forKey:[address gpgNormalizedEmail]];
+    // Never cache dummy keys for addresses entered into reply-to.
+    // Otherwise the dummy key might be returned instead of a real
+    // key, if the same address as entered in the `reply-to` field is
+    // *later* entered in the `to` or `cc` field.
+    if(![key isKindOfClass:[GMComposeMessageReplyToDummyKey class]]) {
+        [self.encryptionKeys setObject:key forKey:address];
+        [self.encryptionKeys setObject:key forKey:[address gpgNormalizedEmail]];
+    }
     [self.recipientKeys setObject:key forKey:address];
 }
 
