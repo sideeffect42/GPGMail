@@ -405,4 +405,18 @@ NSString * const kComposeViewControllerPreventAutoSave = @"ComposeViewController
 
 #pragma mark
 
+#pragma mark - Bug #976
+
+- (void)MASetRepresentedObject:(id __unused)representedObject {
+    [self MASetRepresentedObject:representedObject];
+
+    // The security properties of the compose backed are updated with the
+    // information about the message being edited, as that might influence the decision
+    // on what security method to use, and the status of the security buttons.
+    GMComposeMessagePreferredSecurityProperties *preferredSecurityProperties = [(ComposeBackEnd_GPGMail *)[MAIL_SELF(self) backEnd] preferredSecurityProperties];
+    [preferredSecurityProperties updateWithHintsFromComposeBackEnd:[MAIL_SELF(self) backEnd]];
+}
+
+#pragma mark
+
 @end

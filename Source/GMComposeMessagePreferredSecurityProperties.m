@@ -22,368 +22,663 @@
 #import "ComposeBackEnd+GPGMail.h"
 #import "GMSecurityHistory.h"
 
+#import "Message+GPGMail.h"
+#import "GMMessageSecurityFeatures.h"
+
+
+// The GMComposeMessageSecurityKeyStatus class is responsible for
+// keeping track of the key availability for either S/MIME or OpenPGP.
+//
+// Whenever the sender or recipients for a message change, a new lookup
+// occurs in order to determine if the necessary signing and encryption keys
+// are available.
+//
+// Since fetching S/MIME certificates involves macOS Keychain and might
+// be an expensive operation, the certificates are cached internally
+// and subsequent lookups check the internal cache first and only
+// if no query has been previously run for the sender or recipient
+// the Mail's MCKeychainManager class is used.
+//
+// The GMComposeMessageSecurityKeyStatus class provides the following information:
+//
+// - canSign: is a valid signing key available for the sender
+// - canEncrypt: are valid encryption keys available for the recipients
+// - senderKey: the signing key associated with the sender address
+// - recipientKeys: the encryption keys associated with the recipients' addresses
+// - invalidSigningIdentityError: an error that might have occurred while querying S/MIME certificates
+// - recipientsThatHaveNoEncryptionKeys: a list of recipients for which no encryption keys are available.
+@interface GMComposeMessageSecurityKeyStatus : NSObject
+
+- (instancetype)initWithSecurityMethod:(GPGMAIL_SECURITY_METHOD)securityMethod;
+
+- (id)encryptionKeyForAddress:(NSString *)address;
+- (id)signingKeyForAddress:(NSString *)address;
+- (NSArray *)recipientsThatHaveNoEncryptionKeys;
+
+- (void)updateSender:(NSString *)sender;
+- (void)updateRecipients:(NSArray *)recipients;
+
+// Security method the the key status represents. Either OpenPGP or S/MIME
+@property (nonatomic, assign) GPGMAIL_SECURITY_METHOD securityMethod;
+
+// A local cache of key lookups for any selected sender addresses.
+@property (nonatomic, copy) NSMutableDictionary *signingKeys;
+
+// A local cache of key lookups for any entered recipients.
+@property (nonatomic, copy) NSMutableDictionary *encryptionKeys;
+
+// A map that contains manual mappings between a sender address
+// and a specific key. This is used in case that multiple signing keys
+// exist for the same address.
+//
+// The map is always queried before the local cache.
+@property (nonatomic, copy) NSMutableDictionary *signingKeySenderMap;
+
+// The key associated with the current sender address.
+@property (nonatomic, copy) NSMutableDictionary *senderKey;
+
+// The keys associated with the current recipients.
+@property (nonatomic, copy) NSMutableDictionary *recipientKeys;
+
+@property (nonatomic, copy) NSError *invalidSigningIdentityError;
+
+@property (nonatomic, assign) BOOL canEncrypt;
+@property (nonatomic, assign) BOOL canSign;
+
+@end
+
+@implementation GMComposeMessageSecurityKeyStatus
+
+- (instancetype)initWithSecurityMethod:(GPGMAIL_SECURITY_METHOD)securityMethod {
+    if(self = [super init]) {
+        _securityMethod = securityMethod;
+
+        _signingKeys = [NSMutableDictionary new];
+        _encryptionKeys = [NSMutableDictionary new];
+        _signingKeySenderMap = [NSMutableDictionary new];
+
+        _senderKey = [NSMutableDictionary new];
+        _recipientKeys = [NSMutableDictionary new];
+
+        _canSign = NO;
+        _canEncrypt = NO;
+    }
+    return self;
+}
+
+// Manually map a signing key to a sender address.
+- (void)setSigningKey:(GPGKey *)key forSender:(NSString *)sender {
+    [self.signingKeySenderMap setObject:key forKey:[sender gpgNormalizedEmail]];
+}
+
+// Returns a manually mapped signing key for the given sender address.
+- (GPGKey *)signingKeyForSender:(NSString *)sender {
+    return [self.signingKeySenderMap objectForKey:[sender gpgNormalizedEmail]];
+}
+
+// Returns the current sender address.
+- (NSString *)sender {
+    return [self.senderKey allKeys][0];
+}
+
+// This method needs to be called whenever the sender address changes.
+//
+// The current `senderKey` map is cleared, the key associated
+// with the sender address retrieved and the result cached to prevent
+// unnecessary lookups.
+//
+// If a valid key is found `canSign` is set to true.
+- (void)updateSender:(NSString *)sender {
+    [self.senderKey removeAllObjects];
+    id key = [self signingKeyForAddress:sender];
+    [self cacheSigningKey:key forAddress:sender];
+    self.canSign = key == nil ? NO : YES;
+}
+
+// This method needs to be called whenever the recipients change.
+//
+// The current `recipientKeys` map is cleared, a lookup for each recipient
+// started and the result cached to prevent unnecessary lookups.
+//
+// If valid keys for all recipients are available, `canEncrypt` is set to true.
+- (void)updateRecipients:(NSArray *)recipients replyToAddresses:(NSArray *)replyToAddresses {
+    [self.recipientKeys removeAllObjects];
+
+    // While it might seem counter intuitive, the default for encrypt is set to yes if recipients are available.
+    // This makes sense, since the first recipient with no certificate available will set the status to NO.
+    // Other cases don't change the default value.
+    BOOL canEncrypt = [recipients count] ? YES : NO;
+    for(NSString *address in recipients) {
+        id key = [self encryptionKeyForAddress:address];
+        // In order to support gnupg groups, it's possible that a list of keys is returned, even if only
+        // one recipient is passed in. If more than one key is found, the list of keys is stored for that recipient,
+        // instead of only the first key. (#903)
+        [self cacheEncryptionKey:key forAddress:address];
+
+        if(key == nil) {
+            canEncrypt = NO;
+        }
+    }
+
+    self.canEncrypt = canEncrypt;
+}
+
+// Retrieve the signing key for a given address.
+//
+// First the local `signingKeySenderMap` and `signingKeys` caches are
+// checked for signing key mappings and only if they don't contain a valid
+// key the actual key stores for OpenPGP and S/MIME are checked.
+//
+// Returns nil if no key is found.
+- (id)signingKeyForAddress:(NSString *)address {
+    id signingKey = [self.signingKeySenderMap objectForKey:[address gpgNormalizedEmail]];
+    if(signingKey) {
+        return signingKey;
+    }
+
+    // Check the internal cache.
+    signingKey = [self.signingKeys objectForKey:address];
+    if(signingKey != nil) {
+        return signingKey != [NSNull null] ? signingKey : nil;
+    }
+
+    if(self.securityMethod == GPGMAIL_SECURITY_METHOD_SMIME) {
+        NSError __autoreleasing *invalidSigningIdentityError = nil;
+        id signingIdentity = nil;
+        // Bug #957: Adapt GPGMail to the S/MIME changes introduced in Mail for 10.13.2b3
+        //
+        // Apple Mail team has added a possibility to display errors, if macOS fails to read
+        // a signing identity.
+        if([MCKeychainManager respondsToSelector:@selector(copySigningIdentityForAddress:error:)]) {
+            signingIdentity = (__bridge id)[MCKeychainManager copySigningIdentityForAddress:address error:&invalidSigningIdentityError];
+        }
+        else {
+            signingIdentity = (__bridge id)[MCKeychainManager copySigningIdentityForAddress:address];
+        }
+        self.invalidSigningIdentityError = invalidSigningIdentityError;
+        return signingIdentity;
+    }
+    else {
+        NSString *senderAddress = [address gpgNormalizedEmail];
+        // TODO: Consider pereferring the default key if one is configured.
+        NSArray *signingKeyList = [[[GPGMailBundle sharedInstance] signingKeyListForAddress:senderAddress] allObjects];
+        if([signingKeyList count] > 0) {
+            signingKey = signingKeyList[0];
+            return signingKey;
+        }
+    }
+    
+    return nil;
+}
+
+// Retrieve the encryption key for given recipient.
+//
+// First the local `encryptionKey` cache is checked for encryption
+// key mappings and only if it doesn't contain a valid key the actual
+// key stores for OpenPGP and S/MIME are checked.
+//
+// Returns nil if no key is found. Might return a list of keys for OpenPGP in
+// order to support GnuPG groups.
+- (id)encryptionKeyForAddress:(NSString *)address {
+    // Check the internal cache.
+    id encryptionKey = [self.encryptionKeys objectForKey:address];
+    if(encryptionKey != nil) {
+        return encryptionKey != [NSNull null] ? encryptionKey : nil;
+    }
+
+    if(self.securityMethod == GPGMAIL_SECURITY_METHOD_SMIME) {
+        id certificate = [MCKeychainManager copyEncryptionCertificateForAddress:address];
+        if(certificate) {
+            return certificate;
+        }
+    }
+    else {
+        NSString *normalizedAddress = [address gpgNormalizedEmail];
+        NSArray *keyList = [[[GPGMailBundle sharedInstance] publicKeyListForAddresses:@[normalizedAddress]] allObjects];
+        if([keyList count] > 0) {
+            return keyList;
+        }
+    }
+
+    return nil;
+}
+
+// Cache the result for a signing key lookup under the given address.
+//
+// Each lookup caches the result under the full address
+// (e.g Lukas Pitschl <lukele@gpgtools.org>) **and** the email
+// only, since Mail tends to pass the address in either format at times.
+- (void)cacheSigningKey:(id)key forAddress:(NSString *)address {
+    key = key == nil ? [NSNull null] : key;
+    [self.signingKeys setObject:key forKey:address];
+    [self.signingKeys setObject:key forKey:[address gpgNormalizedEmail]];
+    [self.senderKey setObject:key forKey:address];
+}
+
+// Cache the result for an encryption key lookup under the given address.
+//
+// Each lookup caches the result under the full address
+// (e.g Lukas Pitschl <lukele@gpgtools.org>) **and** the email
+// only, since Mail tends to pass the address in either format at times.
+- (void)cacheEncryptionKey:(id)key forAddress:(NSString *)address {
+    key = key == nil ? [NSNull null] : key;
+    [self.encryptionKeys setObject:key forKey:address];
+    [self.encryptionKeys setObject:key forKey:[address gpgNormalizedEmail]];
+    [self.recipientKeys setObject:key forKey:address];
+}
+
+// Returns a list of all recipients for which no encryption key is available.
+- (NSArray *)recipientsThatHaveNoEncryptionKeys {
+    // Bug #961: Deadlock when using S/MIME and trying to toggle encryption state of a message on macOS 10.13
+    //
+    // -[ComposeBackEnd recipientsThatHaveNoKeyForEncryption] uses the smimeLock internally.
+    // Since the calling method of _GMRecipientsThatHaveNoKeyForEncryption already uses the smimeLock,
+    // a deadlock is triggered when calling the original mail method.
+    //
+    // Since the code for checking for missing S/MIME certificates is by now almost identical to the
+    // check performed for OpenPGP keys, there's no need to call into the original mail method anymore.
+    NSMutableArray *recipients = [NSMutableArray new];
+
+    [self.recipientKeys enumerateKeysAndObjectsUsingBlock:^(id address, id key, BOOL * __unused stop) {
+        if(key == nil || key == [NSNull null]) {
+            [recipients addObject:address];
+        }
+    }];
+
+    return [recipients copy];
+}
+
+@end
+
+NSString * const kGMComposeMessagePreferredSecurityPropertiesHeaderKeySecurityMethod = @"x-gm-security-method";
+NSString * const kGMComposeMessagePreferredSecurityPropertiesHeaderKeyShouldSign = @"x-gm-should-sign";
+NSString * const kGMComposeMessagePreferredSecurityPropertiesHeaderKeyShouldEncrypt = @"x-gm-should-encrypt";
+NSString * const kGMComposeMessagePreferredSecurityPropertiesHeaderValueOpenPGP = @"openpgp";
+NSString * const kGMComposeMessagePreferredSecurityPropertiesHeaderValueSMIME = @"smime";
+
 @interface GMComposeMessagePreferredSecurityProperties ()
 
-@property (nonatomic, readwrite, retain) MCMessage *message;
-
-@property (nonatomic, readwrite, copy) NSDictionary *SMIMESigningIdentities;
-@property (nonatomic, readwrite, copy) NSDictionary *SMIMEEncryptionCertificates;
-
-@property (nonatomic, readwrite, copy) NSDictionary *PGPSigningKeys;
-@property (nonatomic, readwrite, copy) NSDictionary *PGPEncryptionKeys;
+@property (nonatomic, readwrite, assign) BOOL userDidChooseSecurityMethod;
 
 @property (nonatomic, readwrite, assign) BOOL shouldSignMessage;
 @property (nonatomic, readwrite, assign) BOOL shouldEncryptMessage;
 
-@property (nonatomic, readwrite, copy) NSError *invalidSigningIdentitiyError;
+@property (nonatomic, retain) GMComposeMessageSecurityKeyStatus *PGPKeyStatus;
+@property (nonatomic, retain) GMComposeMessageSecurityKeyStatus *SMIMEKeyStatus;
+
+@property (nonatomic, readwrite, retain) MCMessage *message;
 
 @end
 
 @implementation GMComposeMessagePreferredSecurityProperties
 
-- (id)initWithSender:(NSString *)sender recipients:(NSArray *)recipients {
+- (instancetype)init {
     if((self = [super init])) {
-        _sender = [sender copy];
-        _recipients = [recipients copy];
-        _cachedSigningIdentities = [[NSMutableDictionary alloc] init];
-        _cachedEncryptionCertificates = [[NSMutableDictionary alloc] init];
+        _PGPKeyStatus = [[GMComposeMessageSecurityKeyStatus alloc] initWithSecurityMethod:GPGMAIL_SECURITY_METHOD_OPENPGP];
+        _SMIMEKeyStatus = [[GMComposeMessageSecurityKeyStatus alloc] initWithSecurityMethod:GPGMAIL_SECURITY_METHOD_SMIME];
+
         _messageIsDraft = NO;
         _messageIsReply = NO;
         _messageIsFowarded = NO;
         _userDidChooseSecurityMethod = NO;
-        
+
         _userShouldSignMessage = ThreeStateBooleanUndetermined;
         _userShouldEncryptMessage = ThreeStateBooleanUndetermined;
 
-        _invalidSigningIdentityError = nil;
+        _shouldSignMessage = NO;
+        _shouldEncryptMessage = NO;
     }
     
     return self;
 }
-
-- (id)initWithSender:(NSString *)sender signingKey:(GPGKey *)signingKey invalidSigningIdentityError:(NSError *)invalidSigningIdentitiyError recipients:(NSArray *)recipients userShouldSignMessage:(ThreeStateBoolean)userShouldSign userShouldEncryptMessage:(ThreeStateBoolean)userShouldEncrypt {
-    if((self = [self initWithSender:sender recipients:recipients])) {
-        _userShouldSignMessage = userShouldSign;
-        _userShouldEncryptMessage = userShouldEncrypt;
-        _signingKey = [signingKey copy];
-        _signingSender = [sender copy];
-
-        _invalidSigningIdentityError = [invalidSigningIdentitiyError copy];
-    }
-    
-    return self;
-}
-
 
 + (GPGMAIL_SECURITY_METHOD)defaultSecurityMethod {
     return [GMSecurityHistory defaultSecurityMethod];
 }
 
-// Comment later. But for debugging it's nice!
 - (void)setUserShouldSignMessage:(ThreeStateBoolean)userShouldSignMessage {
     // Since our three state boolean enum defines False as 0 and True as 1, it should be save
     // to use the bool as is. No need to convert it to ThreeStateBooleanTrue or ThreeStateBooleanFalse
-    _userShouldSignMessage = userShouldSignMessage;
+    @synchronized (self) {
+        if(_userShouldSignMessage != userShouldSignMessage) {
+            _userShouldSignMessage = userShouldSignMessage;
+        }
+    }
+}
+
+- (ThreeStateBoolean)userShouldSignMessage {
+    @synchronized (self) {
+        return _userShouldSignMessage;
+    }
 }
 
 - (void)setUserShouldEncryptMessage:(ThreeStateBoolean)userShouldEncryptMessage {
-    _userShouldEncryptMessage = userShouldEncryptMessage;
+    @synchronized (self) {
+        if(_userShouldEncryptMessage != userShouldEncryptMessage) {
+            _userShouldEncryptMessage = userShouldEncryptMessage;
+        }
+    }
+}
+
+- (ThreeStateBoolean)userShouldEncryptMessage {
+    @synchronized (self) {
+        return _userShouldEncryptMessage;
+    }
 }
 
 - (BOOL)shouldSignMessage {
-    if(!_canSign)
-        return NO;
-    
-    if(_userShouldSignMessage != ThreeStateBooleanUndetermined)
-        return _userShouldSignMessage;
-    
-    return _shouldSignMessage;
+    @synchronized (self) {
+        if(!self.canSign)
+            return NO;
+
+        if(_userShouldSignMessage != ThreeStateBooleanUndetermined)
+            return _userShouldSignMessage;
+
+        return _shouldSignMessage;
+    }
 }
 
 - (BOOL)shouldEncryptMessage {
-    if(!_canEncrypt)
-        return NO;
-    
-    if(_userShouldEncryptMessage != ThreeStateBooleanUndetermined)
-        return _userShouldEncryptMessage;
-    
-    return _shouldEncryptMessage;
+    @synchronized (self) {
+        if(!self.canEncrypt)
+            return NO;
+
+        if(_userShouldEncryptMessage != ThreeStateBooleanUndetermined)
+            return _userShouldEncryptMessage;
+
+        return _shouldEncryptMessage;
+    }
 }
 
 - (void)setSecurityMethod:(GPGMAIL_SECURITY_METHOD)securityMethod {
-    _securityMethod = securityMethod;
-    _userDidChooseSecurityMethod = YES;
+    @synchronized (self) {
+        if(_securityMethod != securityMethod) {
+            _securityMethod = securityMethod;
+        }
+        _userDidChooseSecurityMethod = YES;
+    }
 }
 
-- (void)addHintsFromBackEnd:(ComposeBackEnd *)backEnd {
-    _messageIsReply = [(ComposeBackEnd_GPGMail *)backEnd messageIsBeingReplied];
-    _messageIsDraft = [(ComposeBackEnd_GPGMail *)backEnd draftIsContinued];
-    _messageIsFowarded = [(ComposeBackEnd_GPGMail *)backEnd messageIsBeingForwarded];
-    
-    self.message = [backEnd originalMessage];
+- (GPGMAIL_SECURITY_METHOD)securityMethod {
+    @synchronized (self) {
+        return _securityMethod;
+    }
+}
+
+- (BOOL)userDidChooseSecurityMethod {
+    @synchronized (self) {
+        return _userDidChooseSecurityMethod;
+    }
+}
+
+- (BOOL)canSign {
+    @synchronized (self) {
+        return self.keyStatus.canSign;
+    }
+}
+
+- (BOOL)canEncrypt {
+    @synchronized (self) {
+        return self.keyStatus.canEncrypt;
+    }
+}
+
+- (NSDictionary *)signingIdentities {
+    @synchronized (self) {
+        return self.keyStatus.senderKey;
+    }
+}
+
+- (NSDictionary *)encryptionCertificates {
+    @synchronized (self) {
+        return self.keyStatus.recipientKeys;
+    }
+}
+
+- (void)updateWithHintsFromComposeBackEnd:(ComposeBackEnd *)backEnd {
+    @synchronized (self) {
+        self.message = [backEnd originalMessage];
+
+        _messageIsReply = [(ComposeBackEnd_GPGMail *)backEnd messageIsBeingReplied];
+        _messageIsDraft = [self.message primitiveMessageType] == 5;
+        _messageIsFowarded = [(ComposeBackEnd_GPGMail *)backEnd messageIsBeingForwarded];
+
+        if(_messageIsDraft) {
+            MCMessageHeaders *headers = [backEnd originalMessageHeaders];
+            [self configureFromDraftHeaders:headers];
+        }
+    }
+}
+
+- (GPGKey *)signingKey {
+    @synchronized (self) {
+        NSString *sender = [self.PGPKeyStatus sender];
+        return [self.PGPKeyStatus signingKeyForSender:sender];
+    }
 }
 
 - (GPGKey *)encryptionKeyForDraft {
-    // Check if a key for encrypting the draft is available matching the sender.
-    // Otherwise, return any key pair with encryption capabilities.
-    // The best match is of course a signing key which is set when selecting a sender address.
-    if(self.signingKey) {
-        return self.signingKey;
+    @synchronized (self) {
+        // Check if a key for encrypting the draft is available matching the sender.
+        // Otherwise, return any key pair with encryption capabilities.
+        // The best match is of course a signing key which is set when selecting a sender address.
+        GPGKey *signingKey = [self signingKey];
+        if(signingKey != nil && signingKey.canAnyEncrypt) {
+            return signingKey;
+        }
+        // Otherwise check for a secret key matching the sender address.
+        NSString *senderAddress = [[self.PGPKeyStatus sender] gpgNormalizedEmail];
+        GPGKey *key = (GPGKey *)[self.PGPKeyStatus signingKeyForAddress:senderAddress];
+        if(key != nil && key.canAnyEncrypt) {
+            return key;
+        }
+        // Last but not least, accept any public key associated with an available secret key.
+        return [[GPGMailBundle sharedInstance] anyPersonalPublicKeyWithPreferenceAddress:senderAddress];
     }
-    // Otherwise check for a secret key matching the sender address.
-    NSString *senderAddress = [self.sender gpgNormalizedEmail];
-    id key = [self.PGPSigningKeys valueForKey:senderAddress];
-    if([key isKindOfClass:[GPGKey class]] && ((GPGKey *)key).canAnyEncrypt) {
-        return key;
-    }
-    // Last but not least, accept any public key associated with an available secret key.
-    return [[GPGMailBundle sharedInstance] anyPersonalPublicKeyWithPreferenceAddress:senderAddress];
 }
 
 - (void)updateSigningKey:(GPGKey *)signingKey forSender:(NSString *)sender {
-    // Once a signing key is set, the keyring is no longer queried for a key matching
-    // the signer address, but the set signing key is always used. (#895)
-    _signingKey = [signingKey copy];
-    _signingSender = [sender copy];
+    @synchronized (self) {
+        // Once a signing key is set, the keyring is no longer queried for a key matching
+        // the signer address, but the set signing key is always used. (#895)
+        [self.PGPKeyStatus setSigningKey:signingKey forSender:sender];
+        [self.PGPKeyStatus updateSender:sender];
+        // Also make sure to update the encrypt-to-self key.
+        [self.PGPKeyStatus cacheEncryptionKey:signingKey forAddress:sender];
+    }
 }
 
-- (void)computePreferredSecurityPropertiesForSecurityMethod:(GPGMAIL_SECURITY_METHOD)securityMethod {
-    // Load signing identity and certificates for S/MIME.
-    NSMutableDictionary *signingIdentities = [self.cachedSigningIdentities mutableCopy];
-    NSMutableDictionary *encryptionCertificates = [self.cachedEncryptionCertificates mutableCopy];
-    
-    // While it might seem counter intuitive, the default for encrypt is set to yes if recipients are available.
-    // This makes sense, since the first recipient with no certificate available will set the status to NO.
-    // Other cases don't change the default value.
-    BOOL canSMIMESign = NO;
-    BOOL canSMIMEEncrypt = [self.recipients count] ? YES : NO;
-    BOOL canPGPSign = NO;
-    BOOL canPGPEncrypt = [self.recipients count] ? YES : NO;
+- (void)updateSender:(NSString *)sender recipients:(NSArray *)recipients {
+    @synchronized (self) {
+        [self _updateSender:sender recipients:recipients];
+    }
+}
+
+- (void)_updateSender:(NSString *)sender recipients:(NSArray *)recipients {
     BOOL allowEncryptEvenIfNoSigningKeyIsAvailable = [[GPGOptions sharedOptions] boolForKey:@"AllowEncryptEvenIfNoSigningKeyIsAvailable"];
-    
-    NSString *sender = [self.sender copy];
-    NSArray *recipients = [self.recipients copy];
-    
-    if(sender) {
-        // Only accept cached S/MIME signing identities, otherwise run a new check.
-        id signingIdentity = signingIdentities[sender];
-        if(signingIdentity && ([signingIdentity isKindOfClass:[GPGKey class]] || signingIdentity == [NSNull null])) {
-            signingIdentity = nil;
-        }
-        if(!signingIdentity) {
-            // Bug #957: Adapt GPGMail to the S/MIME changes introduced in Mail for 10.13.2b3
-            //
-            // Apple Mail team has added a possibility to display errors, if macOS fails to read
-            // a signing identity.
-            NSError __autoreleasing *invalidSigningIdentityError = nil;
-            if([MCKeychainManager respondsToSelector:@selector(copySigningIdentityForAddress:error:)]) {
-                signingIdentity = (__bridge id)[MCKeychainManager copySigningIdentityForAddress:sender error:&invalidSigningIdentityError];
-            }
-            else {
-                signingIdentity = (__bridge id)[MCKeychainManager copySigningIdentityForAddress:sender];
-            }
-            signingIdentities[sender] = signingIdentity ? signingIdentity : [NSNull null];
-            self.invalidSigningIdentitiyError = invalidSigningIdentityError;
-        }
-        canSMIMESign = signingIdentities[sender] && signingIdentities[sender] != [NSNull null] ? YES : NO;
+
+    // Bug #976: Mail complains that it has not "finished finding public keys"
+    //           when the user presses send.
+    //
+    // This error can be reliably triggered, if pressing the encrypt button
+    // is the last action performed before sending the message, since pressing
+    // the send button right after will trigger a call to `-[ComposeBackEnd updateSMIMEStatus:]`
+    // which uses `-[ComposeBackEnd _smimeLock]` internally.
+    // At the same time `-[ComposeViewController sendMailAfterChecking:]` – which is
+    // invoked when pressing the send button – performs a check if -[ComposeBackEnd _smimeLock]`
+    // is still locked. If `-[ComposeBackEnd updateSMIMEStatus:]` takes too long to complete,
+    // the lock will still be in use and a result Mail will warn the user that it has not
+    // "finished finding public keys."
+    //
+    // In previous versions S/MIME certificates were not properly cached,
+    // which lead to the problem that a lookup for an S/MIME certificate
+    // might take just long enough to lead to the bug.
+    //
+    // In order to make sure that updateSMIMEStatus returns almost immediately,
+    // all S/MIME certificates and OpenPGP keys which are queried whenever
+    // the user changes the sender or recipients of the message, are cached separately
+    // in their own `GMComposeMessageSecurityKeyStatus` instances instead of as
+    // before in the same dictionary, always evicting all entries not matching the
+    // necessary type (S/MIME lookups would evict any GPGKey entries, GPG lookups
+    // would evict any S/MIME certificate entries).
+    [self.PGPKeyStatus updateSender:sender];
+    if(self.PGPKeyStatus.canSign || allowEncryptEvenIfNoSigningKeyIsAvailable) {
+        [self.PGPKeyStatus updateRecipients:recipients];
     }
     else {
-        canSMIMESign = NO;
+        [self.PGPKeyStatus updateRecipients:@[]];
     }
-    
-    //BOOL canEncrypt = [recipients count] ? YES : NO;
     // SMIME only allows encryption if a signing certificate exists.
-    if(canSMIMESign) {
-        for(id recipient in recipients) {
-            // Only accept cached S/MIME encryption certificates, otherwise for a new check.
-            id certificate = encryptionCertificates[recipient];
-            // Bug #962: Messages might be OpenPGP encrypted even though S/MIME is selected as security method
-            //
-            // Since adding support to the gnupg group feature, OpenPGP certificates are now stored as array
-            // and the key is the recipient.
-            // In order to remove any OpenPGP certificates, it's necessary to check for NSArray values.
-            if(certificate && ([certificate isKindOfClass:[GPGKey class]] || [certificate isKindOfClass:[NSArray class]] || certificate == [NSNull null])) {
-                certificate = nil;
-            }
-            if(!certificate) {
-                certificate = [MCKeychainManager copyEncryptionCertificateForAddress:recipient];
-                encryptionCertificates[recipient] = certificate ? certificate : [NSNull null];
-            }
-            if(encryptionCertificates[recipient] == [NSNull null]) {
-                canSMIMEEncrypt = NO;
-            }
-        }
+    [self.SMIMEKeyStatus updateSender:sender];
+    if(self.SMIMEKeyStatus.canSign) {
+        [self.SMIMEKeyStatus updateRecipients:recipients];
     }
     else {
-        canSMIMEEncrypt = NO;
+        [self.SMIMEKeyStatus updateRecipients:@[]];
     }
-    
-    // Load signing key and encryption keys for OpenPGP.
-    NSMutableDictionary *signingKeys = [self.cachedSigningIdentities mutableCopy];
-    NSMutableDictionary *encryptionKeys = [self.cachedEncryptionCertificates mutableCopy];
-    
-    // S/MIME treats the sender in a case sensitive manner, PGP does not.
-    NSString *senderAddress = [sender gpgNormalizedEmail];
-    
-    // Only accept cached PGP signing keys, otherwise run a new check.
-    id signingKey = signingKeys[senderAddress];
-    if(sender) {
-        if(signingKey && (![signingKey isKindOfClass:[GPGKey class]] || signingKey == [NSNull null])) {
-            signingKey = nil;
-        }
-        if(!signingKey) {
-            // If a particular signing key has been chosen from the "From" field,
-            // always use that key. Otherwise query all signing keys matching the address.
-            // (#895)
-            if(_signingKey && [_signingSender isEqualToString:sender]) {
-                signingKeys[senderAddress] = _signingKey;
-                signingKeys[sender] = signingKeys[senderAddress];
-            }
-            else {
-                NSArray *signingKeyList = [[[GPGMailBundle sharedInstance] signingKeyListForAddress:senderAddress] allObjects];
-                // TODO: Consider pereferring the default key if one is configured.
-                signingKeys[senderAddress] = [signingKeyList count] > 0 ? signingKeyList[0] : [NSNull null];
-                // In order to trick mail into accepting the key, it has to be added under the sender
-                // with email and full name as well. Otherwise, the last check before calling
-                // -[ComposeBackEnd _makeMessageWithContents:isDraft:shouldSign:shouldEncrypt:shouldSkipSignature:shouldBePlainText:]
-                // will disable signing, since no key for the full address can be found in the _signingIdentities dictionary.
-                signingKeys[sender] = signingKeys[senderAddress];
-            }
-        }
-        canPGPSign = signingKeys[senderAddress] && signingKeys[senderAddress] != [NSNull null] ? YES : NO;
-    }
-    else {
-        canPGPSign = NO;
-    }
-    
-    //BOOL canEncrypt = [recipients count] ? YES : NO;
-    if(canPGPSign || allowEncryptEvenIfNoSigningKeyIsAvailable) {
-        for(id recipient in recipients) {
-            NSString *normalizedRecipient = [recipient gpgNormalizedEmail];
-            // Only accept cached PGP encryption certificates, otherwise for a new check.
-            id key = encryptionKeys[normalizedRecipient];
-            if(key && (![key isKindOfClass:[GPGKey class]] || key == [NSNull null])) {
-                key = nil;
-            }
-            if(!key) {
-                NSArray *keyList = [[[GPGMailBundle sharedInstance] publicKeyListForAddresses:@[normalizedRecipient]] allObjects];
-                // In order to support gnupg groups, it's possible that a list of keys is returned, even if only
-                // one recipient is passed in. If more than one key is found, the list of keys is stored for that recipient,
-                // instead of only the first key. (#903)
-                encryptionKeys[normalizedRecipient] = [keyList count] > 0 ? keyList : [NSNull null];
-                // Bug #957: Adapt GPGMail to the S/MIME changes introduced in Mail for 10.13.2b3
-                //
-                // Apple has added another check if all encryption keys are valid within -[ComposeViewController sendMessageAfterChecking:]
-                // but instead of re-using the -[ComposeBackEnd recipientsThatHaveNoKeyForEncryption] method, they have copy
-                // and pasted the exact same code.
-                // Unfortunately that check wants the dictionary key to be the recipient instead of the normalizedRecipient, so
-                // it's necessary to store the certificates under both keys.
-                encryptionKeys[recipient] = [keyList count] > 0 ? keyList : [NSNull null];
-            }
-            if(encryptionKeys[normalizedRecipient] == [NSNull null]) {
-                canPGPEncrypt = NO;
-            }
-        }
-    }
-    else {
-        canPGPEncrypt = NO;
-    }
-    
+
     // Now we know, if signing and encryption is available. Now on to determine, what security properties should be enabled.
     GPGMAIL_SIGN_FLAG signFlags = 0;
-    if(canPGPSign)
+    if(self.PGPKeyStatus.canSign)
         signFlags |= GPGMAIL_SIGN_FLAG_OPENPGP;
-    if(canSMIMESign)
+    if(self.SMIMEKeyStatus.canSign)
         signFlags |= GPGMAIL_SIGN_FLAG_SMIME;
     
     GPGMAIL_ENCRYPT_FLAG encryptFlags = 0;
-    if(canPGPEncrypt)
+    if(self.PGPKeyStatus.canEncrypt)
         encryptFlags |= GPGMAIL_ENCRYPT_FLAG_OPENPGP;
-    if(canSMIMEEncrypt)
+    if(self.SMIMEKeyStatus.canEncrypt)
         encryptFlags |= GPGMAIL_ENCRYPT_FLAG_SMIME;
     
     GMSecurityHistory *securityHistory = [[GMSecurityHistory alloc] init];
-    GMSecurityOptions *securityOptions = nil;
+    GMSecurityOptions *securityOptions = [securityHistory securityOptionsFromDefaults];
     
-    BOOL canEncrypt = NO;
-    BOOL canSign = NO;
-    
-    if(securityMethod == GPGMAIL_SECURITY_METHOD_UNDETERMINDED) {
-        if(_messageIsReply || _messageIsFowarded) {
-            MCMessage *originalMessage = self.message;
-            securityOptions = [securityHistory bestSecurityOptionsForReplyToMessage:originalMessage signFlags:signFlags encryptFlags:encryptFlags];
-        }
-        else if(_messageIsDraft) {
-            MCMessage *originalMessage = self.message;
-            securityOptions = [securityHistory bestSecurityOptionsForMessageDraft:originalMessage signFlags:signFlags encryptFlags:encryptFlags];
-        }
-        else {
-            securityOptions = [securityHistory bestSecurityOptionsForSender:sender recipients:recipients signFlags:signFlags encryptFlags:encryptFlags];
-        }
-        securityMethod = securityOptions.securityMethod;
-        
-        if(securityMethod == GPGMAIL_SECURITY_METHOD_OPENPGP) {
-            canEncrypt = canPGPEncrypt;
-            canSign = canPGPSign;
-        }
-        else {
-            canEncrypt = canSMIMEEncrypt;
-            canSign = canSMIMESign;
-        }
-        if(securityMethod == GPGMAIL_SECURITY_METHOD_OPENPGP) {
-            DebugLog(@"Security Method is OpenPGP");
-            DebugLog(@"Can OpenPGP Encrypt: %@", canPGPEncrypt ? @"YES" : @"NO");
-            DebugLog(@"Can OpenPGP Sign: %@", canPGPSign ? @"YES" : @"NO");
-        }
-        else if(securityMethod == GPGMAIL_SECURITY_METHOD_SMIME) {
-            DebugLog(@"Security Method is S/MIME");
-            DebugLog(@"Can S/MIME Encrypt: %@", canSMIMEEncrypt ? @"YES" : @"NO");
-            DebugLog(@"Can S/MIME Sign: %@", canSMIMESign ? @"YES" : @"NO");
-        }
+    GPGMAIL_SECURITY_METHOD securityMethod = self.securityMethod;
+
+    // In past versions the security properties were also refreshed
+    // continously in case a draft was being continued. There's however
+    // no need to do this, since security method and security button
+    // statuses are already stored in the drafts header. See
+    // `[ComposeBackEnd_GPGMail configureFromDraftHeaders:]` for details.
+    if(_messageIsDraft) {
+        return;
+    }
+    // In case of a reply or a forward, the reference message will determine
+    // what security method to use.
+    if(_messageIsReply || _messageIsFowarded) {
+        securityOptions = [securityHistory bestSecurityOptionsForReplyToMessage:self.message signFlags:signFlags encryptFlags:encryptFlags];
     }
     else {
-        canEncrypt = securityMethod == GPGMAIL_SECURITY_METHOD_OPENPGP ? canPGPEncrypt : canSMIMEEncrypt;
-        canSign = securityMethod == GPGMAIL_SECURITY_METHOD_OPENPGP ? canPGPSign : canSMIMESign;
-        if(_messageIsReply || _messageIsFowarded) {
-            MCMessage *originalMessage = self.message;
-            securityOptions = [securityHistory bestSecurityOptionsForReplyToMessage:originalMessage signFlags:signFlags encryptFlags:encryptFlags];
-        }
-        else if(_messageIsDraft) {
-            MCMessage *originalMessage = self.message;
-            securityOptions = [securityHistory bestSecurityOptionsForMessageDraft:originalMessage signFlags:signFlags encryptFlags:encryptFlags];
-        }
-        else {
-            securityOptions = [securityHistory bestSecurityOptionsForSender:sender recipients:recipients securityMethod:securityMethod canSign:canSign canEncrypt:canEncrypt];
-        }
+        securityOptions = [securityHistory bestSecurityOptionsForSignFlags:signFlags encryptFlags:encryptFlags];
     }
-    
+
+    // In case the security method to be used is undetermined, the security options
+    // will define what method to best use.
+    if(securityMethod == GPGMAIL_SECURITY_METHOD_UNDETERMINDED) {
+        securityMethod = securityOptions.securityMethod;
+    }
+
     // DON'T use self.securityMethod. The property is only supposed to be used from outside, since
     // it also sets the userDidChooseSecurityMethod value.
     _securityMethod = securityMethod;
-    
+
     _shouldSignMessage = securityOptions.shouldSign;
     _shouldEncryptMessage = securityOptions.shouldEncrypt;
-    
-    _canSMIMESign = canSMIMESign;
-    _canSMIMEEncrypt = canSMIMEEncrypt;
-    _canPGPSign = canPGPSign;
-    _canPGPEncrypt = canPGPEncrypt;
-    
-    _canSign = canSign;
-    _canEncrypt = canEncrypt;
-    
-    self.SMIMESigningIdentities = signingIdentities;
-    self.SMIMEEncryptionCertificates = encryptionCertificates;
-    self.PGPSigningKeys = signingKeys;
-    self.PGPEncryptionKeys = encryptionKeys;
-    
-    if(securityMethod == GPGMAIL_SECURITY_METHOD_SMIME) {
-        self.cachedSigningIdentities = _SMIMESigningIdentities;
-        self.cachedEncryptionCertificates = _SMIMEEncryptionCertificates;
+}
+
+- (GMComposeMessageSecurityKeyStatus *)keyStatus {
+    @synchronized (self) {
+        GMComposeMessageSecurityKeyStatus *keyStatus = self.securityMethod == GPGMAIL_SECURITY_METHOD_SMIME ? self.SMIMEKeyStatus : self.PGPKeyStatus;
+        return keyStatus;
     }
-    else {
-        self.cachedSigningIdentities = _PGPSigningKeys;
-        self.cachedEncryptionCertificates = _PGPEncryptionKeys;
+}
+
+- (NSArray *)recipientsThatHaveNoEncryptionKey {
+    @synchronized (self) {
+        return [self.keyStatus recipientsThatHaveNoEncryptionKeys];
+    }
+}
+
+- (NSError *)invalidSigningIdentityError {
+    return self.keyStatus.invalidSigningIdentityError;
+}
+
+- (NSDictionary *)secureDraftHeaders {
+    @synchronized (self) {
+        NSMutableDictionary *secureDraftHeaders = [[NSMutableDictionary alloc] initWithDictionary:
+                                                   @{kGMComposeMessagePreferredSecurityPropertiesHeaderKeyShouldEncrypt: self.shouldEncryptMessage ? @"YES" : @"NO",
+                                                     kGMComposeMessagePreferredSecurityPropertiesHeaderKeyShouldSign: self.shouldSignMessage ? @"YES" : @"NO",
+                                                     kGMComposeMessagePreferredSecurityPropertiesHeaderKeySecurityMethod: self.securityMethod == GPGMAIL_SECURITY_METHOD_OPENPGP ? kGMComposeMessagePreferredSecurityPropertiesHeaderValueOpenPGP : kGMComposeMessagePreferredSecurityPropertiesHeaderValueSMIME
+                                                     }];
+
+        return [secureDraftHeaders copy];
+    }
+}
+
+- (NSArray *)secureDraftHeadersKeys {
+    return @[
+             kGMComposeMessagePreferredSecurityPropertiesHeaderKeySecurityMethod,
+             kGMComposeMessagePreferredSecurityPropertiesHeaderKeyShouldSign,
+             kGMComposeMessagePreferredSecurityPropertiesHeaderKeyShouldEncrypt
+    ];
+}
+
+- (void)configureFromDraftHeaders:(MCMessageHeaders *)draftHeaders {
+    @synchronized (self) {
+        // x-should-pgp-encrypt is the old obsolete name, but has to be supported
+        // for old drafts. If both header keys are set, prefer the new one.
+        GMSecurityOptions *defaultSecurityOptions = [[GMSecurityHistory new] securityOptionsFromDefaults];
+
+        BOOL headerIsAvailable = NO;
+        for(NSString *headerKey in @[kGMComposeMessagePreferredSecurityPropertiesHeaderKeyShouldEncrypt, @"x-should-pgp-encrypt"]) {
+            if([draftHeaders firstHeaderForKey:headerKey] != nil) {
+                _shouldEncryptMessage = [[[draftHeaders firstHeaderForKey:headerKey] uppercaseString] isEqualToString:@"YES"] ? YES : NO;
+                headerIsAvailable = YES;
+                break;
+            }
+        }
+        if(!headerIsAvailable) {
+            _shouldEncryptMessage = defaultSecurityOptions.shouldEncrypt;
+        }
+
+        headerIsAvailable = NO;
+        for(NSString *headerKey in @[kGMComposeMessagePreferredSecurityPropertiesHeaderKeyShouldSign, @"x-should-pgp-sign"]) {
+            if([draftHeaders firstHeaderForKey:headerKey] != nil) {
+                _shouldSignMessage = [[[draftHeaders firstHeaderForKey:headerKey] uppercaseString] isEqualToString:@"YES"] ? YES : NO;
+                headerIsAvailable = YES;
+                break;
+            }
+        }
+        if(!headerIsAvailable) {
+            _shouldSignMessage = defaultSecurityOptions.shouldEncrypt;
+        }
+
+        NSString *securityMethod = [draftHeaders firstHeaderForKey:kGMComposeMessagePreferredSecurityPropertiesHeaderKeySecurityMethod];
+        if([@[kGMComposeMessagePreferredSecurityPropertiesHeaderValueOpenPGP, kGMComposeMessagePreferredSecurityPropertiesHeaderValueSMIME] containsObject:securityMethod]) {
+            _securityMethod = [[securityMethod lowercaseString] isEqualToString:kGMComposeMessagePreferredSecurityPropertiesHeaderValueOpenPGP] ? GPGMAIL_SECURITY_METHOD_OPENPGP : GPGMAIL_SECURITY_METHOD_SMIME;
+        }
+        else {
+            Message_GPGMail *message = (Message_GPGMail *)self.message;
+            if([message isSMIMESigned] || [message isSMIMEEncrypted] || [message securityFeatures].PGPSigned || [message securityFeatures].PGPEncrypted) {
+                _securityMethod = [message isSMIMEEncrypted] || [message isSMIMESigned] ? GPGMAIL_SECURITY_METHOD_SMIME : GPGMAIL_SECURITY_METHOD_OPENPGP;
+            }
+        }
+    }
+}
+
+- (NSString *)description {
+    @synchronized (self) {
+        NSMutableString *description = [[NSMutableString alloc] initWithString:@"{\n"];
+        [description appendString:[NSString stringWithFormat:@"\tSecurity method: %@,\n", _securityMethod == GPGMAIL_SECURITY_METHOD_OPENPGP ? @"OpenPGP" : @"S/MIME"]];
+        [description appendString:[NSString stringWithFormat:@"\tCan encrypt: %@,\n", self.keyStatus.canEncrypt ? @"YES" : @"NO"]];
+        [description appendString:[NSString stringWithFormat:@"\tCan sign: %@,\n", self.keyStatus.canSign ? @"YES" : @"NO"]];
+        [description appendString:[NSString stringWithFormat:@"\tShould encrypt: %@,\n", self.shouldEncryptMessage ? @"YES" : @"NO"]];
+        [description appendString:[NSString stringWithFormat:@"\tShould sign: %@,\n", self.shouldSignMessage ? @"YES" : @"NO"]];
+        [description appendString:[NSString stringWithFormat:@"\tSender: %@,\n", self.keyStatus.senderKey]];
+        [description appendString:[NSString stringWithFormat:@"\tRecipients: %@,\n", self.keyStatus.recipientKeys]];
+
+        [description appendString:@"\n}"];
+        return description;
     }
 }
 

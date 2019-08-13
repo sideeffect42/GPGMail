@@ -59,7 +59,7 @@
 												  shouldEncrypt:encrypt];
 }
 
-- (GMSecurityOptions *)bestSecurityOptionsForSender:(NSString *)sender recipients:(NSArray *)recipients signFlags:(GPGMAIL_SIGN_FLAG)signFlags 
+- (GMSecurityOptions *)bestSecurityOptionsForSignFlags:(GPGMAIL_SIGN_FLAG)signFlags
                                           encryptFlags:(GPGMAIL_ENCRYPT_FLAG)encryptFlags {
 	
 	GMSecurityOptions *defaultSecurityOptions = [self securityOptionsFromDefaults];
@@ -74,13 +74,13 @@
 	GPGMAIL_SECURITY_METHOD securityMethod = defaultSecurityOptions.securityMethod;
 	
 	// Select the security method based on the availability of keys.
-	if(SMIMEKeyAvailable && !PGPKeyAvailable)
-		securityMethod = GPGMAIL_SECURITY_METHOD_SMIME;
-	else if(PGPKeyAvailable && !SMIMEKeyAvailable)
+    if(SMIMEKeyAvailable && !PGPKeyAvailable) {
+        securityMethod = GPGMAIL_SECURITY_METHOD_SMIME;
+    }
+    else if(PGPKeyAvailable && !SMIMEKeyAvailable) {
 		securityMethod = GPGMAIL_SECURITY_METHOD_OPENPGP;
-	else if((SMIMEKeyAvailable && PGPKeyAvailable) || (!SMIMEKeyAvailable && !PGPKeyAvailable))
-		securityMethod = defaultSecurityOptions.securityMethod;
-		
+    }
+
 	GMSecurityOptions *finalSecurityOptions = [GMSecurityOptions securityOptionsWithSecurityMethod:securityMethod shouldSign:defaultSecurityOptions.shouldSign shouldEncrypt:defaultSecurityOptions.shouldEncrypt];
 	
 	return finalSecurityOptions;

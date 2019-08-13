@@ -485,7 +485,8 @@
                              @"added": @[
                                      @"saveDocument:",
                                      @"setIsBeingPreparedForSending:",
-                                     @"setHasUserMadeChanges:"
+                                     @"setHasUserMadeChanges:",
+                                     @"setRepresentedObject:"
                                      ]
                              }
                      }

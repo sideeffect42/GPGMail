@@ -54,9 +54,17 @@
 #define MAIL_SELF ((ComposeBackEnd *)self)
 
 extern NSString * const kComposeViewControllerPreventAutoSave;
+extern NSString * const kMCMessageGeneratorSecurityMethodKey;
 
 const NSString *kComposeBackEndPreferredSecurityPropertiesKey = @"PreferredSecurityPropertiesKey";
 NSString * const kLibraryMimeBodyReturnCompleteBodyDataForComposeBackendKey = @"ReturnCompleteBodyDataForComposeBackEnd";
+NSString * const kComposeBackEndPreferredSecurityPropertiesAccessLockKey = @"ComposeBackEndPreferredSecurityPropertiesAccessLockKey";
+
+@interface ComposeBackEnd_GPGMail ()
+
+@property (nonatomic, retain) NSLock *preferredSecurityPropertiesAccessLock;
+
+@end
 
 @implementation ComposeBackEnd_GPGMail
 
@@ -173,7 +181,7 @@ NSString * const kLibraryMimeBodyReturnCompleteBodyDataForComposeBackendKey = @"
     BOOL signMessage = isDraft ? NO : securityProperties.shouldSignMessage;
     BOOL encryptMessage = isDraft ? encryptDraft : securityProperties.shouldEncryptMessage;
     
-    MCOutgoingMessage *outgoingMessage = [self MA_makeMessageWithContents:contents isDraft:NO shouldSign:signMessage shouldEncrypt:encryptMessage shouldSkipSignature:shouldSkipSignature shouldBePlainText:shouldBePlainText];
+    MCOutgoingMessage *outgoingMessage = [self MA_makeMessageWithContents:contents isDraft:isDraft shouldSign:signMessage shouldEncrypt:encryptMessage shouldSkipSignature:shouldSkipSignature shouldBePlainText:shouldBePlainText];
     
     // NOTE: The monitor is set on the threadDictionary of the current thread. So as long as any error which
     //       might occur during message creation is set on the same thread, it's reliably matching this message.
@@ -318,25 +326,22 @@ NSString * const kLibraryMimeBodyReturnCompleteBodyDataForComposeBackendKey = @"
  GMCodeInjector makes sure, that the correct method is overridden by our own.
  */
 - (id)MAOutgoingMessageUsingWriter:(id)writer contents:(id)contents headers:(id)headers isDraft:(BOOL)isDraft shouldBePlainText:(BOOL)shouldBePlainText NS_RETURNS_RETAINED {
-	if([contents ivarExists:@"IsDraft"])
-		isDraft = [[contents getIvar:@"IsDraft"] boolValue];
-	if([contents ivarExists:@"IsDraft"] && isDraft) {
+    // Mail doesn't pass in the sign status, when saving a draft, so we have to get it ourselves.
+    // For encrypt we also use the state of the button, shouldEncrypt is overriden by our own
+    // logic to always encrypt drafts if possible.
+    GMComposeMessagePreferredSecurityProperties *securityProperties = [self preferredSecurityProperties];
+
+    if(isDraft) {
 		// Prevent hang on 10.10 when restoring drafts.
 		// Mail on 10.10 needs the "x-apple-mail-remote-attachments" header in every draft mail.
 		// See: https://gpgtools.lighthouseapp.com/projects/65764-gpgmail/tickets/871
 		[headers setHeader:self.GMShouldDownloadRemoteAttachments ? @"YES" : @"NO" forKey:@"x-apple-mail-remote-attachments"];
 
+        NSDictionary *secureDraftHeaders = [securityProperties secureDraftHeaders];
+        for(NSString *headerKey in [securityProperties secureDraftHeaders]) {
+            [headers setHeader:[secureDraftHeaders objectForKey:headerKey] forKey:headerKey];
+        }
 
-		// Mail doesn't pass in the sign status, when saving a draft, so we have to get it ourselves.
-		// For encrypt we also use the state of the button, shouldEncrypt is overriden by our own
-		// logic to always encrypt drafts if possible.
-        GMComposeMessagePreferredSecurityProperties *securityProperties = [self preferredSecurityProperties];
-        BOOL shouldSign = securityProperties.shouldSignMessage;
-		BOOL shouldEncrypt = securityProperties.shouldEncryptMessage;
-		
-        [headers setHeader:shouldEncrypt ? @"YES" : @"NO" forKey:@"x-should-pgp-encrypt"];
-		[headers setHeader:shouldSign ? @"YES" : @"NO" forKey:@"x-should-pgp-sign"];
-		
 		// MailTags seems to duplicate our mail headers, if the message is to be encrypted.
 		// This behaviour is worked around in [MCMessageGenerator _newDataForMimePart:withPartData:]
 		// by removing the duplicate mail headers.
@@ -346,34 +351,41 @@ NSString * const kLibraryMimeBodyReturnCompleteBodyDataForComposeBackendKey = @"
 		// we add a flag to it.
 		[writer setIvar:@"IsDraft" value:@(YES)];
 
-        // If a draft is being created which should be encrypted, but not encryptionCertificates are setup
-        // on the writer, a fitting certificate is added at this point.
-        BOOL userWantsDraftsEncrypted = [[GPGOptions sharedOptions] boolForKey:@"OptionallyEncryptDrafts"];
-        id smimeLock = [self valueForKey:@"_smimeLock"];
-        // Bug #957: Adapt GPGMail to the S/MIME changes introduced in Mail for 10.13.2b3
-        //
-        // _smimeLock is no longer a simple object to be used with @synchronized but instead
-        // a real NSLock.
-        if([smimeLock isKindOfClass:[NSLock class]]) {
-            @try {
-                [smimeLock lock];
-                [self GMConfigureEncryptionCertificatesForMessageGenerator:writer shouldEncryptDraft:userWantsDraftsEncrypted];
+        if(securityProperties.securityMethod == GPGMAIL_SECURITY_METHOD_OPENPGP) {
+            // If a draft is being created which should be encrypted, but not encryptionCertificates are setup
+            // on the writer, a fitting certificate is added at this point.
+            BOOL userWantsDraftsEncrypted = [[GPGOptions sharedOptions] boolForKey:@"OptionallyEncryptDrafts"];
+            id smimeLock = [self valueForKey:@"_smimeLock"];
+            // Bug #957: Adapt GPGMail to the S/MIME changes introduced in Mail for 10.13.2b3
+            //
+            // _smimeLock is no longer a simple object to be used with @synchronized but instead
+            // a real NSLock.
+            if([smimeLock isKindOfClass:[NSLock class]]) {
+                @try {
+                    [smimeLock lock];
+                    [self GMConfigureEncryptionCertificatesForMessageGenerator:writer shouldEncryptDraft:userWantsDraftsEncrypted];
+                }
+                @catch(NSException *e) {}
+                @finally {
+                    [smimeLock unlock];
+                }
             }
-            @catch(NSException *e) {}
-            @finally {
-                [smimeLock unlock];
-            }
-        }
-        else {
-            @synchronized (smimeLock) {
-                [self GMConfigureEncryptionCertificatesForMessageGenerator:writer shouldEncryptDraft:userWantsDraftsEncrypted];
+            else {
+                @synchronized (smimeLock) {
+                    [self GMConfigureEncryptionCertificatesForMessageGenerator:writer shouldEncryptDraft:userWantsDraftsEncrypted];
+                }
             }
         }
 	}
 	else {
-		[headers removeHeaderForKey:@"x-should-pgp-encrypt"];
-		[headers removeHeaderForKey:@"x-should-pgp-sign"];
+        for(NSString *headerKey in [securityProperties secureDraftHeadersKeys]) {
+            [headers removeHeaderForKey:headerKey];
+        }
 	}
+
+    // Store the security method on the writer.
+    [writer setIvar:kMCMessageGeneratorSecurityMethodKey value:@(securityProperties.securityMethod)];
+
 	return [self MAOutgoingMessageUsingWriter:writer contents:contents headers:headers isDraft:isDraft shouldBePlainText:shouldBePlainText];
 }
 
@@ -748,29 +760,7 @@ NSString * const kLibraryMimeBodyReturnCompleteBodyDataForComposeBackendKey = @"
 }
 
 - (id)_GMRecipientsThatHaveNoKeyForEncryption {
-    NSMutableArray *nonEligibleRecipients = [NSMutableArray array];
-
-    GPGMAIL_SECURITY_METHOD securityMethod = self.preferredSecurityProperties.securityMethod;
-    BOOL isSMIME = securityMethod == GPGMAIL_SECURITY_METHOD_SMIME;
-    // Bug #961: Deadlock when using S/MIME and trying to toggle encryption state of a message on macOS 10.13
-    //
-    // -[ComposeBackEnd recipientsThatHaveNoKeyForEncryption] uses the smimeLock internally.
-    // Since the calling method of _GMRecipientsThatHaveNoKeyForEncryption already uses the smimeLock,
-    // a deadlock is triggered when calling the original mail method.
-    //
-    // Since the code for checking for missing S/MIME certificates is by now almost identical to the
-    // check performed for OpenPGP keys, there's no need to call into the original mail method anymore.
-    for(NSString *recipient in [((ComposeBackEnd *)self) allRecipients]) {
-        // For Apple's S/MIME implementation it's important that the full recipient matches the certificate.
-        // For OpenPGP the email address of the recipient suffices.
-        NSString *recipientAddress = isSMIME ? recipient : [recipient gpgNormalizedEmail];
-        NSDictionary *encryptionCertificates = [self valueForKey:@"_encryptionCertificates"];
-        if(!encryptionCertificates[recipientAddress] || encryptionCertificates[recipientAddress] == [NSNull null]) {
-            [nonEligibleRecipients addObject:recipient];
-        }
-    }
-
-    return nonEligibleRecipients;
+    return [self.preferredSecurityProperties recipientsThatHaveNoEncryptionKey];
 }
 
 - (BOOL)messageIsBeingReplied {
@@ -801,7 +791,9 @@ NSString * const kLibraryMimeBodyReturnCompleteBodyDataForComposeBackendKey = @"
     //
     // _smimeLock is no longer a simple object to be used with @synchronized but instead
     // a real NSLock.
+    [self.preferredSecurityPropertiesAccessLock lock];
     securityProperties = [self getIvar:kComposeBackEndPreferredSecurityPropertiesKey];
+    [self.preferredSecurityPropertiesAccessLock unlock];
 
     return securityProperties;
 }
@@ -814,7 +806,6 @@ NSString * const kLibraryMimeBodyReturnCompleteBodyDataForComposeBackendKey = @"
     [self setIvar:kComposeBackEndPreferredSecurityPropertiesKey value:preferredSecurityProperties];
 }
 
-// TODO: Possibly remove later. only for testing
 - (void)MAUpdateSMIMEStatus:(void(^)(void))onComplete {
     // Re-Implementation of Mail's updateSMIMEStatus.
     // updateSMIMEStatus is invoked by updateSecurityControls, which is responsible for any UI updates.
@@ -829,55 +820,48 @@ NSString * const kLibraryMimeBodyReturnCompleteBodyDataForComposeBackendKey = @"
     }
     [MAIL_SELF setDefaultSenderIfNeeded];
     NSString *sender = nil;
-//    if([MAIL_SELF respondsToSelector:@selector(senderWithValidation:)]) {
-//        sender = [MAIL_SELF senderWithValidation:YES];
-//    }
-//    else {
-        sender = [MAIL_SELF sender];
-//    }
+    sender = [MAIL_SELF sender];
     NSArray *recipients = [MAIL_SELF allRecipients];
     if(sender) {
         recipients = [recipients arrayByAddingObject:sender];
     }
-    
+
     NSOperationQueue *smimeQueue = [MAIL_SELF smimeQueue];
     [smimeQueue cancelAllOperations];
     [smimeQueue addOperationWithBlock:^{
         void (^checkCertificates)(void) = ^{
-            NSMutableDictionary *signingIdentitiesMap = [self valueForKey:@"_signingIdentities"];
-            // Remove signing identities not matching the current sender.
-            NSSet *signingIdentities = [signingIdentitiesMap keysOfEntriesPassingTest:^BOOL(id key, __unused id obj, __unused BOOL *stop) {
-                return ![key isEqual:sender];
-            }];
-            [signingIdentitiesMap removeObjectsForKeys:[signingIdentities allObjects]];
-            
-            // Remove encryption certificates not matching the current recipients.
-            NSMutableDictionary *encryptionCertificatesMap = [self valueForKey:@"_encryptionCertificates"];
-            NSSet *encryptionCertificates = [encryptionCertificatesMap keysOfEntriesPassingTest:^BOOL(id key, __unused id obj, __unused BOOL *stop) {
-                return ![recipients containsObject:key];
-            }];
-            [encryptionCertificatesMap removeObjectsForKeys:[encryptionCertificates allObjects]];
-            
-            // If there are already preferredSecurityProperties determined, copy the userShouldSignMessage and
-            // userShouldEncryptMessage on to the new security properties.
             GMComposeMessagePreferredSecurityProperties *currentSecurityProperties = self.preferredSecurityProperties;
-            GPGKey *signingKey = [currentSecurityProperties.signingSender isEqualToString:sender] ? currentSecurityProperties.signingKey : nil;
-            GMComposeMessagePreferredSecurityProperties *preferredSecurityProperties = [[GMComposeMessagePreferredSecurityProperties alloc] initWithSender:sender signingKey:signingKey invalidSigningIdentityError:currentSecurityProperties.invalidSigningIdentityError recipients:recipients userShouldSignMessage:currentSecurityProperties ? currentSecurityProperties.userShouldSignMessage : ThreeStateBooleanUndetermined userShouldEncryptMessage:currentSecurityProperties ? currentSecurityProperties.userShouldEncryptMessage : ThreeStateBooleanUndetermined];
-            preferredSecurityProperties.cachedSigningIdentities = [self valueForKey:@"_signingIdentities"];
-            preferredSecurityProperties.cachedEncryptionCertificates = [self valueForKey:@"_encryptionCertificates"];
-            
-            [preferredSecurityProperties addHintsFromBackEnd:self];
-            [preferredSecurityProperties computePreferredSecurityPropertiesForSecurityMethod:currentSecurityProperties.securityMethod];
-            
-            [MAIL_SELF setCanSign:preferredSecurityProperties.canSign];
-            [MAIL_SELF setCanEncrypt:preferredSecurityProperties.canEncrypt];
-            [self setValue:[preferredSecurityProperties.cachedSigningIdentities mutableCopy] forKey:@"_signingIdentities"];
-            [self setValue:[preferredSecurityProperties.cachedEncryptionCertificates mutableCopy] forKey:@"_encryptionCertificates"];
-            if([MAIL_SELF respondsToSelector:@selector(setInvalidSigningIdentityError:)]) {
-                [MAIL_SELF setInvalidSigningIdentityError:preferredSecurityProperties.invalidSigningIdentityError];
-            }
+            NSAssert(currentSecurityProperties != nil, @"Preferred security properties are setup when the back end is initialized. Can't be nil");
+            // The update of the security properties needs to be locked.
+            @try {
+                [self.preferredSecurityPropertiesAccessLock lock];
 
-            self.preferredSecurityProperties = preferredSecurityProperties;
+                [currentSecurityProperties updateSender:sender recipients:recipients];
+
+                // Update the security status on the back end on the back end as well.
+                [MAIL_SELF setCanSign:currentSecurityProperties.canSign];
+                [MAIL_SELF setCanEncrypt:currentSecurityProperties.canEncrypt];
+                // Mail uses `_signingIdentities` and `_encryptionCertificates` to store references
+                // to the S/MIME certificates to be used for signing and encryption.
+                // The types of the objects stored are fortunately never checked, so these properties
+                // can be used to store the current OpenPGP keys as well.
+                //
+                // Based on the current security method the security properties will either return
+                // a list of S/MIME certificates or OpenPGP keys.
+                [self setValue:[currentSecurityProperties.signingIdentities mutableCopy] forKey:@"_signingIdentities"];
+                [self setValue:[currentSecurityProperties.encryptionCertificates mutableCopy] forKey:@"_encryptionCertificates"];
+                // Retrieving an S/MIME certificate might result in an error, so this error also
+                // has to be set on the back end.
+                if([MAIL_SELF respondsToSelector:@selector(setInvalidSigningIdentityError:)]) {
+                    [MAIL_SELF setInvalidSigningIdentityError:currentSecurityProperties.invalidSigningIdentityError];
+                }
+            }
+            @catch(NSException *error) {
+                DebugLog(@"Failed to update security properties - error: %@", error);
+            }
+            @finally {
+                [self.preferredSecurityPropertiesAccessLock unlock];
+            }
         };
 
         id smimeLock = [self valueForKey:@"_smimeLock"];
@@ -997,6 +981,35 @@ NSString * const kLibraryMimeBodyReturnCompleteBodyDataForComposeBackendKey = @"
     }
     [self MASetIsUndeliverable:isUndeliverable];
 }
+
+#pragma mark - Bug #976
+
+- (id)MAInit {
+    // The compose message security properties for the message are
+    // initialized when the back end is first initialized, and updated
+    // whenever necessary.
+    ComposeBackEnd_GPGMail *object = [self MAInit];
+    GMComposeMessagePreferredSecurityProperties *securityProperties = [GMComposeMessagePreferredSecurityProperties new];
+    object.preferredSecurityProperties = securityProperties;
+
+    // The access to the security properties will be guarded by
+    // a lock. The _smimeLock doesn't work here, since it might
+    // be used recursively by mistake.
+    NSLock *accessLock = [NSLock new];
+    object.preferredSecurityPropertiesAccessLock = accessLock;
+
+    return self;
+}
+
+- (NSLock *)preferredSecurityPropertiesAccessLock {
+    return [self getIvar:kComposeBackEndPreferredSecurityPropertiesAccessLockKey];
+}
+
+- (void)setPreferredSecurityPropertiesAccessLock:(NSLock *)preferredSecurityPropertiesAccessLock {
+    [self setIvar:kComposeBackEndPreferredSecurityPropertiesAccessLockKey value:preferredSecurityPropertiesAccessLock];
+}
+
+#pragma mark
 
 @end
 

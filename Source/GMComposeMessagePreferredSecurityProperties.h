@@ -7,6 +7,7 @@
 //
 
 #import <Foundation/Foundation.h>
+#import <Libmacgpg/Libmacgpg.h>
 
 #import "GPGConstants.h"
 
@@ -26,77 +27,53 @@ typedef enum {
     BOOL _messageIsReply;
     BOOL _messageIsFowarded;
     
-    NSDictionary *_SMIMESigningIdentities;
-    NSDictionary *_SMIMEEncryptionCertificates;
-    
-    NSDictionary *_PGPSigningKeys;
-    NSDictionary *_PGPEncryptionKeys;
-    
     ThreeStateBoolean _userShouldSignMessage;
     ThreeStateBoolean _userShouldEncryptMessage;
 
-    GPGKey *_signingKey;
-    NSString *_signingSender;
-
-    // Bug #957: Adapt GPGMail to the S/MIME changes introduced in Mail for 10.13.2b3
-    NSError *_invalidSigningIdentityError;
+    GPGMAIL_SECURITY_METHOD _securityMethod;
 }
+
+- (instancetype)init;
 
 + (GPGMAIL_SECURITY_METHOD)defaultSecurityMethod;
 
-- (id)initWithSender:(NSString *)sender recipients:(NSArray *)recipients;
-- (id)initWithSender:(NSString *)sender signingKey:(GPGKey *)signingKey invalidSigningIdentityError:(NSError *)invalidSigningIdentitiyError recipients:(NSArray *)recipients userShouldSignMessage:(ThreeStateBoolean)userShouldSign userShouldEncryptMessage:(ThreeStateBoolean)userShouldEncrypt;
-- (void)addHintsFromBackEnd:(ComposeBackEnd *)backEnd;
-
-- (void)computePreferredSecurityPropertiesForSecurityMethod:(GPGMAIL_SECURITY_METHOD)securityMethod;
+- (void)updateWithHintsFromComposeBackEnd:(ComposeBackEnd *)backEnd;
+- (void)updateSender:(NSString *)sender recipients:(NSArray *)recipients;
 
 - (void)updateSigningKey:(GPGKey *)signingKey forSender:(NSString *)sender;
 
 - (GPGKey *)encryptionKeyForDraft;
+- (GPGKey *)signingKey;
 
-@property (nonatomic, readonly, assign) BOOL canPGPSign;
-@property (nonatomic, readonly, assign) BOOL canPGPEncrypt;
-@property (nonatomic, readonly, assign) BOOL canSMIMESign;
-@property (nonatomic, readonly, assign) BOOL canSMIMEEncrypt;
+- (NSArray *)recipientsThatHaveNoEncryptionKey;
 
-@property (nonatomic, readonly, copy) NSDictionary *SMIMESigningIdentities;
-@property (nonatomic, readonly, copy) NSDictionary *SMIMEEncryptionCertificates;
-
-@property (nonatomic, readonly, copy) NSDictionary *PGPSigningKeys;
-@property (nonatomic, readonly, copy) NSDictionary *PGPEncryptionKeys;
+- (NSDictionary *)secureDraftHeaders;
+- (NSArray *)secureDraftHeadersKeys;
 
 @property (nonatomic, readonly, assign) BOOL canSign;
 @property (nonatomic, readonly, assign) BOOL canEncrypt;
 
-/* Computed properties which will either return the user decision (userShouldSignMessage, userShouldEncryptMessage)
- * if available, or otherwise the best default based on GPGMail settings.
- */
+// Computed properties which will either return the user decision (userShouldSignMessage, userShouldEncryptMessage)
+// if available, or otherwise the best default based on GPG Mail settings.
 @property (nonatomic, readonly, assign) BOOL shouldSignMessage;
 @property (nonatomic, readonly, assign) BOOL shouldEncryptMessage;
 
-/* These two properties store the status that the user chose, by clicking on the
- * sign or encrypt button. Internally these bools use a three state boolean.
- *
- * IMPORTANT: You must only write this property, not read it. should<Sign|Ecnrypt>Message will contain
- * the correct status to use.
- */
+// These two properties store the status that the user chose, by clicking on the
+// sign or encrypt button. Internally these bools use a three state boolean.
+//
+// In order to determine whether a message should be encrypted or not however,
+// use `shouldSign|EncryptMessage` instead, since that also takes into consideration
+// the configured defaults.
+//
+// These variables can however also be used to determine whether or not the user
+// has manually toggled one of the security buttons.
 @property (nonatomic, assign) ThreeStateBoolean userShouldSignMessage;
 @property (nonatomic, assign) ThreeStateBoolean userShouldEncryptMessage;
 
-@property (nonatomic, readonly, assign) BOOL shouldSignDecidedByUser;
-
-@property (nonatomic, copy) NSString *sender;
-@property (nonatomic, copy) NSArray *recipients;
-
-@property (nonatomic, readonly, retain) GPGKey *signingKey;
-@property (nonatomic, readonly, retain) NSString *signingSender;
-
-@property (nonatomic, copy) NSDictionary *cachedSigningIdentities;
-@property (nonatomic, copy) NSDictionary *cachedEncryptionCertificates;
+@property (nonatomic, readonly, copy) NSDictionary *signingIdentities;
+@property (nonatomic, readonly, copy) NSDictionary *encryptionCertificates;
 
 @property (nonatomic, readwrite, assign) GPGMAIL_SECURITY_METHOD securityMethod;
-
-@property (nonatomic, readonly, retain) MCMessage *message;
 
 @property (nonatomic, readonly, assign) BOOL userDidChooseSecurityMethod;
 
