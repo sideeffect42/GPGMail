@@ -175,7 +175,7 @@ NSString * const kComposeViewControllerPreventAutoSave = @"ComposeViewController
 
 	BOOL isReply = [(ComposeBackEnd_GPGMail *)backEnd messageIsBeingReplied];
 	BOOL isForward = [(ComposeBackEnd_GPGMail *)backEnd messageIsBeingForwarded];
-    BOOL originalMessageIsEncrypted = [[((Message_GPGMail *)[backEnd originalMessage]) securityFeatures] PGPEncrypted];
+    BOOL originalMessageIsEncrypted = securityProperties.referenceMessageIsEncrypted;
     BOOL replyShouldBeEncrypted = securityProperties.shouldEncryptMessage;
 
 	// If checklist contains the unencryptedReplyToEncryptedMessage item, it means

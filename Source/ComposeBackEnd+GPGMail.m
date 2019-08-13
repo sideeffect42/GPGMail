@@ -427,21 +427,13 @@ NSString * const kComposeBackEndPreferredSecurityPropertiesAccessLockKey = @"Com
     // in order to properly restore the security button states
     // 12 is added to the list of allowed values for type for a reply.
     NSInteger type = [(ComposeBackEnd *)self type];
-    return (type == 1 || type == 2 || type == 4 || type == 12) && ![self draftIsContinued];
+    return (type == 1 || type == 2 || type == 4 || type == 12);
 }
 
 - (BOOL)messageIsBeingForwarded {
     NSInteger type = [MAIL_SELF type];
-    return type == 3 && ![self draftIsContinued];
+    return type == 3;
 }
-
-
-- (BOOL)draftIsContinued {
-    MCMessageHeaders *headers = [MAIL_SELF originalMessageHeaders];
-    BOOL draftIsContinued = [headers firstHeaderForKey:@"x-should-pgp-sign"] != nil || [headers firstHeaderForKey:@"x-should-pgp-encrypt"] != nil;
-    return draftIsContinued;
-}
-
 
 - (GMComposeMessagePreferredSecurityProperties *)preferredSecurityProperties {
     GMComposeMessagePreferredSecurityProperties *securityProperties = nil;

@@ -31,6 +31,8 @@ typedef enum {
     ThreeStateBoolean _userShouldEncryptMessage;
 
     GPGMAIL_SECURITY_METHOD _securityMethod;
+
+    ThreeStateBoolean _referenceMessageIsEncrypted;
 }
 
 - (instancetype)init;
@@ -78,5 +80,10 @@ typedef enum {
 @property (nonatomic, readonly, assign) BOOL userDidChooseSecurityMethod;
 
 @property (nonatomic, readonly, copy) NSError *invalidSigningIdentityError;
+
+// Bug #1041: GMComposeMessagePreferredSecurityProperties also records
+// the security status of the reference message in case the composed
+// message is a reply or forward.
+@property (nonatomic, readonly, assign) BOOL referenceMessageIsEncrypted;
 
 @end

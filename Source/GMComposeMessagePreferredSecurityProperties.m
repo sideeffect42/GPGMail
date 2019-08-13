@@ -293,6 +293,7 @@
 NSString * const kGMComposeMessagePreferredSecurityPropertiesHeaderKeySecurityMethod = @"x-gm-security-method";
 NSString * const kGMComposeMessagePreferredSecurityPropertiesHeaderKeyShouldSign = @"x-gm-should-sign";
 NSString * const kGMComposeMessagePreferredSecurityPropertiesHeaderKeyShouldEncrypt = @"x-gm-should-encrypt";
+NSString * const kGMComposeMessagePreferredSecurityPropertiesHeaderKeyReferenceMessageEncrypted = @"x-gm-reference-encrypted";
 NSString * const kGMComposeMessagePreferredSecurityPropertiesHeaderValueOpenPGP = @"openpgp";
 NSString * const kGMComposeMessagePreferredSecurityPropertiesHeaderValueSMIME = @"smime";
 
@@ -327,6 +328,8 @@ NSString * const kGMComposeMessagePreferredSecurityPropertiesHeaderValueSMIME = 
 
         _shouldSignMessage = NO;
         _shouldEncryptMessage = NO;
+
+        _referenceMessageIsEncrypted = ThreeStateBooleanUndetermined;
     }
     
     return self;
@@ -443,9 +446,20 @@ NSString * const kGMComposeMessagePreferredSecurityPropertiesHeaderValueSMIME = 
         _messageIsDraft = [self.message primitiveMessageType] == 5;
         _messageIsFowarded = [(ComposeBackEnd_GPGMail *)backEnd messageIsBeingForwarded];
 
+        // Bug #1041: If the `originalMessage` is a draft, it no longer refers
+        // to the message that is being replied, but instead to the message that
+        // is being written.
+        // In that case the security features of the `originalMessage` can't be used
+        // but instead the security features information is stored in special header
+        // keys on the draft.
         if(_messageIsDraft) {
             MCMessageHeaders *headers = [backEnd originalMessageHeaders];
             [self configureFromDraftHeaders:headers];
+        }
+        else {
+            if((_messageIsReply || _messageIsFowarded) && ([(Message_GPGMail *)self.message securityFeatures].PGPEncrypted || [(Message_GPGMail *)self.message isSMIMEEncrypted])) {
+                _referenceMessageIsEncrypted = ThreeStateBooleanTrue;
+            }
         }
     }
 }
@@ -610,6 +624,12 @@ NSString * const kGMComposeMessagePreferredSecurityPropertiesHeaderValueSMIME = 
                                                      kGMComposeMessagePreferredSecurityPropertiesHeaderKeyShouldSign: self.shouldSignMessage ? @"YES" : @"NO",
                                                      kGMComposeMessagePreferredSecurityPropertiesHeaderKeySecurityMethod: self.securityMethod == GPGMAIL_SECURITY_METHOD_OPENPGP ? kGMComposeMessagePreferredSecurityPropertiesHeaderValueOpenPGP : kGMComposeMessagePreferredSecurityPropertiesHeaderValueSMIME
                                                      }];
+        // Once set, the reference-encrypted header must not be altered.
+        // So if the header doesn't exist and thus `_referenceMessageIsEncrypted`'s
+        // value is `ThreeStateBooleanUndetermined`, it is not returned.
+        if(!_messageIsDraft || (_messageIsDraft && _referenceMessageIsEncrypted != ThreeStateBooleanUndetermined)) {
+            [secureDraftHeaders setValue:_referenceMessageIsEncrypted == ThreeStateBooleanTrue ? @"YES": @"NO" forKey:kGMComposeMessagePreferredSecurityPropertiesHeaderKeyReferenceMessageEncrypted];
+        }
 
         return [secureDraftHeaders copy];
     }
@@ -619,7 +639,8 @@ NSString * const kGMComposeMessagePreferredSecurityPropertiesHeaderValueSMIME = 
     return @[
              kGMComposeMessagePreferredSecurityPropertiesHeaderKeySecurityMethod,
              kGMComposeMessagePreferredSecurityPropertiesHeaderKeyShouldSign,
-             kGMComposeMessagePreferredSecurityPropertiesHeaderKeyShouldEncrypt
+             kGMComposeMessagePreferredSecurityPropertiesHeaderKeyShouldEncrypt,
+             kGMComposeMessagePreferredSecurityPropertiesHeaderKeyReferenceMessageEncrypted
     ];
 }
 
@@ -663,6 +684,16 @@ NSString * const kGMComposeMessagePreferredSecurityPropertiesHeaderValueSMIME = 
                 _securityMethod = [message isSMIMEEncrypted] || [message isSMIMESigned] ? GPGMAIL_SECURITY_METHOD_SMIME : GPGMAIL_SECURITY_METHOD_OPENPGP;
             }
         }
+
+        if([draftHeaders firstHeaderForKey:kGMComposeMessagePreferredSecurityPropertiesHeaderKeyReferenceMessageEncrypted] != nil) {
+            _referenceMessageIsEncrypted = [[[draftHeaders firstHeaderForKey:kGMComposeMessagePreferredSecurityPropertiesHeaderKeyReferenceMessageEncrypted] uppercaseString] isEqualToString:@"YES"] ? YES : NO;
+        }
+    }
+}
+
+- (BOOL)referenceMessageIsEncrypted {
+    @synchronized (self) {
+        return _referenceMessageIsEncrypted == ThreeStateBooleanTrue;
     }
 }
 
@@ -674,6 +705,7 @@ NSString * const kGMComposeMessagePreferredSecurityPropertiesHeaderValueSMIME = 
         [description appendString:[NSString stringWithFormat:@"\tCan sign: %@,\n", self.keyStatus.canSign ? @"YES" : @"NO"]];
         [description appendString:[NSString stringWithFormat:@"\tShould encrypt: %@,\n", self.shouldEncryptMessage ? @"YES" : @"NO"]];
         [description appendString:[NSString stringWithFormat:@"\tShould sign: %@,\n", self.shouldSignMessage ? @"YES" : @"NO"]];
+        [description appendString:[NSString stringWithFormat:@"\tReference message is encrypted: %@,\n", _referenceMessageIsEncrypted == ThreeStateBooleanTrue ? @"YES" : (_referenceMessageIsEncrypted == ThreeStateBooleanFalse ? @"NO" : @"N/A")]];
         [description appendString:[NSString stringWithFormat:@"\tSender: %@,\n", self.keyStatus.senderKey]];
         [description appendString:[NSString stringWithFormat:@"\tRecipients: %@,\n", self.keyStatus.recipientKeys]];
 
