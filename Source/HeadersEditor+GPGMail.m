@@ -779,6 +779,53 @@ const NSString *kHeadersEditorFromControlParentItemKey = @"HeadersEditorFromCont
     [control setToolTip:toolTip];
 }
 
+// Bug #970: Error dialog for missing encryption keys might be
+//           displayed upon send if reply-to field is filled with an address
+//
+// The broken handling of the reply-to field in macOS Mail (FB5429632 - rdar://35815871)
+// leads to three distinct bugs:
+//
+// 1. Any address entered into the reply-to field is treated as a recipient internally
+//    and thus a message can only be encrypted if a public key for the address in the reply-to
+//    field is available.
+// 2. Upon send, a user might be mistakenly warned that public keys for a recipient are missing
+//    even though they have keys for all recipients.
+// 3. Upon entering an address into the reply-to field, the encrypt button does not properly
+//    reflect whether or not public keys for all recipients are available.
+//
+// The first major problem is, that `reply-to` is treated as a recipient and is
+// included in the list of addresses returned by `-[ComposeBackEnd allRecipients]`.
+// So in order for a message to be sent encrypted, a public keys must be available
+// for all recipients enterd in `to`, `cc`, `bcc` as well as for the address in
+// `reply-to`.
+// In addition however, contrary to the `to`, `cc` and `bcc` fields,
+// changes to the `reply-to` field don't trigger an update of the security controls
+// and the list of looked up public keys.
+// So if the reply-to field is filled in last, Mail doesn't check if a public key
+// is available for the address in the reply-to field.
+// However upon pressing send, the list returned by -[ComposeBackEnd allRecipients] is also
+// checked against the previously looked up public keys and since no entry is available for
+// the reply-to address, the error message mentioned in the title is displayed.
+// Last but not least, due to the fact that the security controls are not updated, when
+// and address is entered into the `reply-to` field, the encrypt button also doesn't reflect
+// if the message can really be encrypted or not.
+//
+// In order to fix the UI inconsistencies, it is necessary to make sure
+// that the security controls are updated properly whenever a change to
+// `reply-to` is detected. And the properly handle reply-to, it is excluded
+// from being treated as a recipient.
+- (void)MA_changeHeaderField:(MUIAddressField *)headerField {
+	[self MA_changeHeaderField:headerField];
+
+	if(headerField != [mailself replyToField]) {
+		return;
+	}
+
+	// Make sure the security controls are updated.
+	[[mailself composeViewController] updateSendButtonStateInToolbar];
+	[mailself _updateSecurityControls];
+}
+
 // TODO: Re-Implement for Sierra.
 //- (void)MA_updateSignButtonTooltip {
 //    // This was replaced by a ValueTransformer in Yosemite.

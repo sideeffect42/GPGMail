@@ -471,9 +471,21 @@ NSString * const kComposeBackEndPreferredSecurityPropertiesAccessLockKey = @"Com
     [MAIL_SELF setDefaultSenderIfNeeded];
     NSString *sender = nil;
     sender = [MAIL_SELF sender];
-    NSArray *recipients = [MAIL_SELF allRecipients];
+    NSArray *recipients = [self GMRealRecipients];
+
     if(sender) {
         recipients = [recipients arrayByAddingObject:sender];
+    }
+
+    // Update the security properties with the current sender and recipient information.
+    NSMutableArray *replyToAddresses = [NSMutableArray new];
+    for(NSString *address in [MAIL_SELF _structuredListForHeader:@"reply-to"]) {
+        // If the reply-to address is also contained in the recipients list
+        // it must not be added to the replyToAddress list, since otherwise
+        // the message would not be encrypted for it.
+        if(![recipients containsObject:address]) {
+            [replyToAddresses addObject:address];
+        }
     }
 
     NSOperationQueue *smimeQueue = [MAIL_SELF smimeQueue];
@@ -486,7 +498,7 @@ NSString * const kComposeBackEndPreferredSecurityPropertiesAccessLockKey = @"Com
             @try {
                 [self.preferredSecurityPropertiesAccessLock lock];
 
-                [currentSecurityProperties updateSender:sender recipients:recipients];
+                [currentSecurityProperties updateSender:sender recipients:recipients replyToAddresses:replyToAddresses];
 
                 // Update the security status on the back end on the back end as well.
                 [MAIL_SELF setCanSign:currentSecurityProperties.canSign];
@@ -540,6 +552,19 @@ NSString * const kComposeBackEndPreferredSecurityPropertiesAccessLockKey = @"Com
             onComplete();
         }
     }];
+}
+
+- (NSArray *)GMRealRecipients {
+    // -[ComposeBackEnd allRecipients] also includes addresses entered in reply-to
+    // since Mail seems to believe that they should be treated
+    // as recipients as well.
+    //
+    // This method returns all *real* recipients.
+    NSMutableArray *recipients = [[MAIL_SELF _structuredListForHeader:@"to"] mutableCopy];
+    [recipients addObjectsFromArray:[MAIL_SELF _structuredListForHeader:@"cc"]];
+    [recipients addObjectsFromArray:[MAIL_SELF _structuredListForHeader:@"bcc"]];
+
+    return [recipients copy];
 }
 
 - (void)MA_generateParsedMessageFromOriginalMessages {

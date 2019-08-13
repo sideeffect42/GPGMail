@@ -26,6 +26,15 @@
 #import "GMMessageSecurityFeatures.h"
 
 
+@implementation GMComposeMessageReplyToDummyKey
+
+- (instancetype)init {
+    self = [super initWithFingerprint:@"0x0000000000000000"];
+    return self;
+}
+
+@end
+
 // The GMComposeMessageSecurityKeyStatus class is responsible for
 // keeping track of the key availability for either S/MIME or OpenPGP.
 //
@@ -56,7 +65,7 @@
 - (NSArray *)recipientsThatHaveNoEncryptionKeys;
 
 - (void)updateSender:(NSString *)sender;
-- (void)updateRecipients:(NSArray *)recipients;
+- (void)updateRecipients:(NSArray *)recipients replyToAddresses:(NSArray *)replyToAddresses;
 
 // Security method the the key status represents. Either OpenPGP or S/MIME
 @property (nonatomic, assign) GPGMAIL_SECURITY_METHOD securityMethod;
@@ -158,6 +167,18 @@
         if(key == nil) {
             canEncrypt = NO;
         }
+    }
+
+    // For reply-to addresses a dummy key is created and cached
+    // in order to satisfy Mail's requirement, treating reply-to
+    // addresses the same as recipients. See #970 for details.
+    for(NSString *address in replyToAddresses) {
+        // Make sure not to use a dummy key for a reply to address which is
+        // as real recipient as well.
+        if([recipients containsObject:address] || [recipients containsObject:[address gpgNormalizedEmail]]) {
+            continue;
+        }
+        [self cacheEncryptionKey:[GMComposeMessageReplyToDummyKey new] forAddress:address];
     }
 
     self.canEncrypt = canEncrypt;
@@ -502,13 +523,13 @@ NSString * const kGMComposeMessagePreferredSecurityPropertiesHeaderValueSMIME = 
     }
 }
 
-- (void)updateSender:(NSString *)sender recipients:(NSArray *)recipients {
+- (void)updateSender:(NSString *)sender recipients:(NSArray *)recipients replyToAddresses:(NSArray *)replyToAddresses {
     @synchronized (self) {
-        [self _updateSender:sender recipients:recipients];
+        [self _updateSender:sender recipients:recipients replyToAddresses:replyToAddresses];
     }
 }
 
-- (void)_updateSender:(NSString *)sender recipients:(NSArray *)recipients {
+- (void)_updateSender:(NSString *)sender recipients:(NSArray *)recipients replyToAddresses:(NSArray *)replyToAddresses {
     BOOL allowEncryptEvenIfNoSigningKeyIsAvailable = [[GPGOptions sharedOptions] boolForKey:@"AllowEncryptEvenIfNoSigningKeyIsAvailable"];
 
     // Bug #976: Mail complains that it has not "finished finding public keys"
@@ -537,18 +558,18 @@ NSString * const kGMComposeMessagePreferredSecurityPropertiesHeaderValueSMIME = 
     // would evict any S/MIME certificate entries).
     [self.PGPKeyStatus updateSender:sender];
     if(self.PGPKeyStatus.canSign || allowEncryptEvenIfNoSigningKeyIsAvailable) {
-        [self.PGPKeyStatus updateRecipients:recipients];
+        [self.PGPKeyStatus updateRecipients:recipients replyToAddresses:replyToAddresses];
     }
     else {
-        [self.PGPKeyStatus updateRecipients:@[]];
+        [self.PGPKeyStatus updateRecipients:@[] replyToAddresses:replyToAddresses];
     }
     // SMIME only allows encryption if a signing certificate exists.
     [self.SMIMEKeyStatus updateSender:sender];
     if(self.SMIMEKeyStatus.canSign) {
-        [self.SMIMEKeyStatus updateRecipients:recipients];
+        [self.SMIMEKeyStatus updateRecipients:recipients replyToAddresses:replyToAddresses];
     }
     else {
-        [self.SMIMEKeyStatus updateRecipients:@[]];
+        [self.SMIMEKeyStatus updateRecipients:@[] replyToAddresses:replyToAddresses];
     }
 
     // Now we know, if signing and encryption is available. Now on to determine, what security properties should be enabled.

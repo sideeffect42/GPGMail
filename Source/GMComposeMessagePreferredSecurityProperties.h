@@ -40,7 +40,7 @@ typedef enum {
 + (GPGMAIL_SECURITY_METHOD)defaultSecurityMethod;
 
 - (void)updateWithHintsFromComposeBackEnd:(ComposeBackEnd *)backEnd;
-- (void)updateSender:(NSString *)sender recipients:(NSArray *)recipients;
+- (void)updateSender:(NSString *)sender recipients:(NSArray *)recipients replyToAddresses:(NSArray *)replyToAddresses;
 
 - (void)updateSigningKey:(GPGKey *)signingKey forSender:(NSString *)sender;
 
@@ -85,5 +85,17 @@ typedef enum {
 // the security status of the reference message in case the composed
 // message is a reply or forward.
 @property (nonatomic, readonly, assign) BOOL referenceMessageIsEncrypted;
+
+@end
+
+// The GMComposeMessageReplyToDummyKey class is representing
+// a GPG Key which is only used as a placeholder for reply-to
+// addresses.
+//
+// See -[HeadersEditor_GPGMail MA_changeHeaderField:] for further
+// details.
+@interface GMComposeMessageReplyToDummyKey : GPGKey
+
+- (instancetype)init;
 
 @end

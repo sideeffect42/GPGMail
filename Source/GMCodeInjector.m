@@ -399,7 +399,8 @@
                      @"selectors": @{
                             @"added": @[
                                     @"_toggleEncryption",
-                                    @"securityControlChanged:"
+                                    @"securityControlChanged:",
+                                    @"_changeHeaderField:"
                             ],
                              @"renamed": @[
                                      @[@"updateSecurityControls",

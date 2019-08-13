@@ -124,7 +124,15 @@ NSString * const kMCMessageGeneratorSecurityMethodKey = @"kMCMessageGeneratorSec
         topLevelHeaders = [MCMutableMessageHeaders new];
     }
     GPGMAIL_SECURITY_METHOD securityMethod = (GPGMAIL_SECURITY_METHOD)[[self getIvar:kMCMessageGeneratorSecurityMethodKey] unsignedIntegerValue];
-    NSArray *encryptionCertificates = [mailself encryptionCertificates];
+    NSMutableArray *encryptionCertificates = [mailself.encryptionCertificates count] != 0 ? [NSMutableArray new] : nil;
+    // Remove the reply-to dummy keys.
+    for(id key in mailself.encryptionCertificates) {
+        if([key isKindOfClass:[GMComposeMessageReplyToDummyKey class]]) {
+            continue;
+        }
+        [encryptionCertificates addObject:key];
+    }
+    mailself.encryptionCertificates = encryptionCertificates;
 
     if(securityMethod != GPGMAIL_SECURITY_METHOD_OPENPGP) {
         return [self MA_newOutgoingMessageFromTopLevelMimePart:topLevelPart topLevelHeaders:topLevelHeaders withPartData:partData];
