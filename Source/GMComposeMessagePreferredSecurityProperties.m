@@ -314,6 +314,8 @@
 NSString * const kGMComposeMessagePreferredSecurityPropertiesHeaderKeySecurityMethod = @"x-gm-security-method";
 NSString * const kGMComposeMessagePreferredSecurityPropertiesHeaderKeyShouldSign = @"x-gm-should-sign";
 NSString * const kGMComposeMessagePreferredSecurityPropertiesHeaderKeyShouldEncrypt = @"x-gm-should-encrypt";
+NSString * const kGMComposeMessagePreferredSecurityPropertiesHeaderKeySender = @"x-gm-sender";
+NSString * const kGMComposeMessagePreferredSecurityPropertiesHeaderKeySenderFingerprint = @"x-gm-sender-fingerprint";
 NSString * const kGMComposeMessagePreferredSecurityPropertiesHeaderKeyReferenceMessageEncrypted = @"x-gm-reference-encrypted";
 NSString * const kGMComposeMessagePreferredSecurityPropertiesHeaderValueOpenPGP = @"openpgp";
 NSString * const kGMComposeMessagePreferredSecurityPropertiesHeaderValueSMIME = @"smime";
@@ -652,6 +654,11 @@ NSString * const kGMComposeMessagePreferredSecurityPropertiesHeaderValueSMIME = 
             [secureDraftHeaders setValue:_referenceMessageIsEncrypted == ThreeStateBooleanTrue ? @"YES": @"NO" forKey:kGMComposeMessagePreferredSecurityPropertiesHeaderKeyReferenceMessageEncrypted];
         }
 
+        if(![[self.PGPKeyStatus sender] isEqualToString:@""] && self.signingKey != nil) {
+            [secureDraftHeaders setValue:[self.signingKey fingerprint] forKey:kGMComposeMessagePreferredSecurityPropertiesHeaderKeySenderFingerprint];
+            [secureDraftHeaders setValue:[self.PGPKeyStatus sender] forKey:kGMComposeMessagePreferredSecurityPropertiesHeaderKeySender];
+        }
+
         return [secureDraftHeaders copy];
     }
 }
@@ -661,7 +668,9 @@ NSString * const kGMComposeMessagePreferredSecurityPropertiesHeaderValueSMIME = 
              kGMComposeMessagePreferredSecurityPropertiesHeaderKeySecurityMethod,
              kGMComposeMessagePreferredSecurityPropertiesHeaderKeyShouldSign,
              kGMComposeMessagePreferredSecurityPropertiesHeaderKeyShouldEncrypt,
-             kGMComposeMessagePreferredSecurityPropertiesHeaderKeyReferenceMessageEncrypted
+             kGMComposeMessagePreferredSecurityPropertiesHeaderKeyReferenceMessageEncrypted,
+             kGMComposeMessagePreferredSecurityPropertiesHeaderKeySender,
+             kGMComposeMessagePreferredSecurityPropertiesHeaderKeySenderFingerprint
     ];
 }
 
@@ -708,6 +717,15 @@ NSString * const kGMComposeMessagePreferredSecurityPropertiesHeaderValueSMIME = 
 
         if([draftHeaders firstHeaderForKey:kGMComposeMessagePreferredSecurityPropertiesHeaderKeyReferenceMessageEncrypted] != nil) {
             _referenceMessageIsEncrypted = [[[draftHeaders firstHeaderForKey:kGMComposeMessagePreferredSecurityPropertiesHeaderKeyReferenceMessageEncrypted] uppercaseString] isEqualToString:@"YES"] ? YES : NO;
+        }
+
+        NSString *senderAddress = [draftHeaders firstHeaderForKey:kGMComposeMessagePreferredSecurityPropertiesHeaderKeySender];
+        NSString *senderFingerprint = [draftHeaders firstHeaderForKey:kGMComposeMessagePreferredSecurityPropertiesHeaderKeySenderFingerprint];
+        if(![senderAddress isEqualToString:@""] && ![senderFingerprint isEqualToString:@""]) {
+            GPGKey *signingKey = [[GPGMailBundle sharedInstance] keyForFingerprint:senderFingerprint];
+            if(signingKey) {
+                [self updateSigningKey:signingKey forSender:senderAddress];
+            }
         }
     }
 }

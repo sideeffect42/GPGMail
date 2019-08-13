@@ -574,7 +574,14 @@ const NSString *kHeadersEditorFromControlParentItemKey = @"HeadersEditorFromCont
 	
 	
 	NSMenuItem *item, *parentItem, *selectedItem = [popUp selectedItem], *subItemToSelect = nil;
-	GPGKey *defaultKey = [bundle preferredGPGKeyForSigning];
+    GMComposeMessagePreferredSecurityProperties *securityProperties = [(ComposeBackEnd_GPGMail *)[[mailself composeViewController] backEnd] preferredSecurityProperties];
+
+    GPGKey *defaultKey = [bundle preferredGPGKeyForSigning];
+    // If this is a draft being continued, the GPG key to use is
+    // recorded in the draft's headers.
+    if([securityProperties signingKey]) {
+        defaultKey = [securityProperties signingKey];
+    }
 	BOOL useTitleFromAccount = [[GPGOptions sharedOptions] boolForKey:@"ShowAccountNameForKeysOfSameAddress"];
 	
 	// If menu items are not yet set, simply exit.
