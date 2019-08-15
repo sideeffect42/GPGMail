@@ -355,8 +355,15 @@ NSString * const kGMComposeMessagePreferredSecurityPropertiesHeaderValueSMIME = 
         _userShouldSignMessage = ThreeStateBooleanUndetermined;
         _userShouldEncryptMessage = ThreeStateBooleanUndetermined;
 
-        _shouldSignMessage = NO;
-        _shouldEncryptMessage = NO;
+        // Should sign and should encrypt message will be set to the user
+        // preferences and later updated from
+        // `-[GMComposeMessagePreferredSecurityProperties updateWithHintsFromComposeBackEnd:]`
+        // once additional information is available. For example draft headers if a draft
+        // is continued, or sign and encrypt status of an original message if a
+        // reply is created.
+        GMSecurityOptions *defaultSecurityOptions = [[GMSecurityHistory new] securityOptionsFromDefaults];
+        _shouldSignMessage = defaultSecurityOptions.shouldSign;
+        _shouldEncryptMessage = defaultSecurityOptions.shouldEncrypt;
 
         _referenceMessageIsEncrypted = ThreeStateBooleanUndetermined;
     }
@@ -489,6 +496,24 @@ NSString * const kGMComposeMessagePreferredSecurityPropertiesHeaderValueSMIME = 
             if((_messageIsReply || _messageIsFowarded) && ([(Message_GPGMail *)self.message securityFeatures].PGPEncrypted || [(Message_GPGMail *)self.message isSMIMEEncrypted])) {
                 _referenceMessageIsEncrypted = ThreeStateBooleanTrue;
             }
+
+            GMSecurityOptions *securityOptions = nil;
+            // Bug #1045: Status of security buttons should be updated properly when draft is continued.
+            //
+            // Determine the default values for `shouldSign` and `shouldEncrypt`.
+            // N.B.: Once determined these values don't change. The button state
+            // is then defined by the values of `shouldSign|Encrypt` and `canSign|canEncrypt`
+            //
+            // There's no need to pass in encrypt or sign flags, since those are only
+            // necessary to determine the best security method and that's not needed here.
+            if(_messageIsReply || _messageIsDraft) {
+                securityOptions = [[GMSecurityHistory new] bestSecurityOptionsForReplyToMessage:self.message signFlags:0 encryptFlags:0];
+            }
+            else {
+                securityOptions = [[GMSecurityHistory new] bestSecurityOptionsForSignFlags:0 encryptFlags:0];
+            }
+            _shouldSignMessage = securityOptions.shouldSign;
+            _shouldEncryptMessage = securityOptions.shouldEncrypt;
         }
     }
 }
@@ -624,9 +649,6 @@ NSString * const kGMComposeMessagePreferredSecurityPropertiesHeaderValueSMIME = 
     // DON'T use self.securityMethod. The property is only supposed to be used from outside, since
     // it also sets the userDidChooseSecurityMethod value.
     _securityMethod = securityMethod;
-
-    _shouldSignMessage = securityOptions.shouldSign;
-    _shouldEncryptMessage = securityOptions.shouldEncrypt;
 }
 
 - (GMComposeMessageSecurityKeyStatus *)keyStatus {
@@ -646,13 +668,36 @@ NSString * const kGMComposeMessagePreferredSecurityPropertiesHeaderValueSMIME = 
     return self.keyStatus.invalidSigningIdentityError;
 }
 
+#pragma mark Bug #1045
+
+- (NSDictionary *)messageProtectionStatusDraftHeaders {
+    @synchronized (self) {
+        // Bug #1045: Status of security buttons should be updated properly when draft is continued.
+        //
+        // When saving the current `shouldSign` and `shouldEncrypt` status of the
+        // message in the draft headers, `self.shouldSignMessage` and `self.shouldEncryptMessage`
+        // can't be used, since they have the side effect to return NO if not all keys
+        // are available to either sign or encrypt, instead of the real current status.
+        // While this comes in handy for properly updating the UI, it falsifies the status
+        // stored in the draft headers.
+        BOOL shouldSign = _userShouldSignMessage != ThreeStateBooleanUndetermined ? _userShouldSignMessage : _shouldSignMessage;
+        BOOL shouldEncrypt = _userShouldEncryptMessage != ThreeStateBooleanUndetermined ? _userShouldEncryptMessage : _shouldEncryptMessage;
+
+        return @{
+                 kGMComposeMessagePreferredSecurityPropertiesHeaderKeyShouldEncrypt: shouldEncrypt ? @"YES" : @"NO",
+                 kGMComposeMessagePreferredSecurityPropertiesHeaderKeyShouldSign: shouldSign ? @"YES" : @"NO"
+                 };
+    }
+}
+
+#pragma mark
+
 - (NSDictionary *)secureDraftHeaders {
     @synchronized (self) {
         NSMutableDictionary *secureDraftHeaders = [[NSMutableDictionary alloc] initWithDictionary:
-                                                   @{kGMComposeMessagePreferredSecurityPropertiesHeaderKeyShouldEncrypt: self.shouldEncryptMessage ? @"YES" : @"NO",
-                                                     kGMComposeMessagePreferredSecurityPropertiesHeaderKeyShouldSign: self.shouldSignMessage ? @"YES" : @"NO",
-                                                     kGMComposeMessagePreferredSecurityPropertiesHeaderKeySecurityMethod: self.securityMethod == GPGMAIL_SECURITY_METHOD_OPENPGP ? kGMComposeMessagePreferredSecurityPropertiesHeaderValueOpenPGP : kGMComposeMessagePreferredSecurityPropertiesHeaderValueSMIME
+                                                   @{kGMComposeMessagePreferredSecurityPropertiesHeaderKeySecurityMethod: self.securityMethod == GPGMAIL_SECURITY_METHOD_OPENPGP ? kGMComposeMessagePreferredSecurityPropertiesHeaderValueOpenPGP : kGMComposeMessagePreferredSecurityPropertiesHeaderValueSMIME
                                                      }];
+        [secureDraftHeaders addEntriesFromDictionary:[self messageProtectionStatusDraftHeaders]];
         // Once set, the reference-encrypted header must not be altered.
         // So if the header doesn't exist and thus `_referenceMessageIsEncrypted`'s
         // value is `ThreeStateBooleanUndetermined`, it is not returned.
@@ -707,7 +752,7 @@ NSString * const kGMComposeMessagePreferredSecurityPropertiesHeaderValueSMIME = 
             }
         }
         if(!headerIsAvailable) {
-            _shouldSignMessage = defaultSecurityOptions.shouldEncrypt;
+            _shouldSignMessage = defaultSecurityOptions.shouldSign;
         }
 
         NSString *securityMethod = [draftHeaders firstHeaderForKey:kGMComposeMessagePreferredSecurityPropertiesHeaderKeySecurityMethod];
