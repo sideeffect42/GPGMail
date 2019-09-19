@@ -131,17 +131,6 @@ NSString *SUScheduledCheckIntervalKey = @"SUScheduledCheckInterval";
 
 
 
-- (IBAction)openSupport:(id)sender {
-	BOOL success = [GPGTask showGPGSuitePreferencesTab:@"report" arguments:nil];
-
-	if (!success) {
-		// Alternative if GPGPreferences could not be launched.
-		[[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://gpgtools.tenderapp.com/"]];
-	}
-}
-- (IBAction)openDonate:(id)sender {
-    [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://gpgtools.org/donate"]];
-}
 - (IBAction)openKnowledgeBase:(id)sender {
     [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://gpgtools.tenderapp.com/kb"]];
 }
